@@ -7,13 +7,19 @@ using DCA.DotNet.Extensions.CloudEvents;
 string broker = Environment.GetEnvironmentVariable("KAFKA_BROKER") ?? "localhost:9092";
 string topic = Environment.GetEnvironmentVariable("KAFKA_TOPIC") ?? "devperftest";
 string consumerGroup = Environment.GetEnvironmentVariable("KAFKA_CONSUMER_GROUP") ?? "devperftest";
+int runningWorkItemLimit = int.Parse(Environment.GetEnvironmentVariable("KAFKA_RUNNING_WORK_ITEM_LIMIT") ?? "1024");
 var autoOffsetReset = Environment.GetEnvironmentVariable("KAFKA_AUTO_OFFSET_RESET") switch
 {
     "latest" => AutoOffsetReset.Latest,
     "earliest" => AutoOffsetReset.Earliest,
     _ => AutoOffsetReset.Latest
 };
-
+var deliveryGuarantee = Environment.GetEnvironmentVariable("KAFKA_DELIVERY_GUARANTEE") switch
+{
+    "at_least_once" => DeliveryGuarantee.AtLeastOnce,
+    "at_most_once" => DeliveryGuarantee.AtMostOnce,
+    _ => DeliveryGuarantee.AtLeastOnce
+};
 
 var services = new ServiceCollection()
 // .AddLogging();
@@ -37,35 +43,27 @@ services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: topic)
             GroupId = consumerGroup,
             AutoOffsetReset = autoOffsetReset,
         };
-        // options.RunningWorkItemLimit = -1;
-        options.DeliveryGuarantee = DeliveryGuarantee.AtLeastOnce;
+        options.RunningWorkItemLimit = runningWorkItemLimit;
+        options.DeliveryGuarantee = deliveryGuarantee;
     });
 
 var sp = services.BuildServiceProvider();
 sp.GetRequiredService<Registry>().Debug();
 
-string scenario = args.Length > 0 ? args[0] : "validate";
+string scenario = args[0];
 
-Console.WriteLine($"Starting {scenario}");
-var parallelism = args.Length > 1 ? int.Parse(args[1]) : 1;
-var count = args.Length > 2 ? int.Parse(args[2]) : 1000;
-
-var publishTask = scenario.ToLower() switch
+int parallelism = int.Parse(args[1]);
+int count = int.Parse(args[2]);
+if (scenario == "pub" || scenario == "pubsub")
 {
-    "validate" => Validate(),
-    "publish" => Publish(),
-    _ => throw new ArgumentException($"Unknown scenario: {scenario}")
-};
+    Console.WriteLine($"Starting publish");
+    await Publish();
+}
 
-await publishTask;
-
-await Subscribe();
-
-async Task Validate()
+if (scenario == "sub" || scenario == "pubsub")
 {
-    var pubsub = sp.GetRequiredService<ICloudEventPubSub>();
-    await pubsub.PublishAsync(new Ping());
-    Console.WriteLine("Published 1");
+    Console.WriteLine($"Starting subscribe");
+    await Subscribe();
 }
 
 async Task Publish()
@@ -104,8 +102,10 @@ async Task Subscribe()
 async Task Monitor(PeriodicTimer timer)
 {
     long lastCount = 0L;
+    int seconds = 0;
     while (await timer.WaitForNextTickAsync())
     {
+        seconds++;
         var currentCount = PingHandler.Count;
         var delta = currentCount - lastCount;
         Console.WriteLine($"Processed: {currentCount}, rate: {delta / 1.0:F1}/s");
@@ -117,4 +117,6 @@ async Task Monitor(PeriodicTimer timer)
             break;
         }
     }
+
+    Console.WriteLine($"Rate: {PingHandler.Count / seconds:F1}/s");
 }

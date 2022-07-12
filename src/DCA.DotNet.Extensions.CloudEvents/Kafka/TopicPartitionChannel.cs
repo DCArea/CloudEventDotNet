@@ -9,14 +9,29 @@ internal partial class TopicPartitionChannel
 {
     private readonly Channel<KafkaMessageWorkItem> _channel;
     private readonly TopicPartition _topicPartition;
+    private readonly KafkaSubscribeOptions _options;
     private readonly ILogger _logger;
     private CancellationTokenSource? _cancellationTokenSource;
 
-    public TopicPartitionChannel(ILoggerFactory loggerFactory, TopicPartition topicPartition)
+    public TopicPartitionChannel(
+        ILoggerFactory loggerFactory,
+        TopicPartition topicPartition,
+        KafkaSubscribeOptions options)
     {
         _topicPartition = topicPartition;
+        _options = options;
         _logger = loggerFactory.CreateLogger($"{nameof(TopicPartitionChannel)}[{_topicPartition.Topic}:{_topicPartition.Partition.Value}]");
-        _channel = Channel.CreateBounded<KafkaMessageWorkItem>(64);
+        _channel = _options.RunningWorkItemLimit > 0
+            ? Channel.CreateBounded<KafkaMessageWorkItem>(new BoundedChannelOptions(_options.RunningWorkItemLimit)
+            {
+                SingleReader = true,
+                SingleWriter = true
+            })
+            : Channel.CreateUnbounded<KafkaMessageWorkItem>(new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = true
+            });
         Activate();
     }
     public ChannelWriter<KafkaMessageWorkItem> Writer => _channel.Writer;

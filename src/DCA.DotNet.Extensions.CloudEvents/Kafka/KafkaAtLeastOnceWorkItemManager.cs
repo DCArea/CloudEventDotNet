@@ -8,15 +8,18 @@ internal class KafkaAtLeastOnceWorkItemManager : IWorkItemLifetime
     private readonly Dictionary<TopicPartition, TopicPartitionChannel> _channels = new();
     private readonly ILogger<KafkaAtLeastOnceWorkItemManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly KafkaSubscribeOptions _options;
 
-    public KafkaAtLeastOnceWorkItemManager(ILoggerFactory loggerFactory)
+    public KafkaAtLeastOnceWorkItemManager(ILoggerFactory loggerFactory, KafkaSubscribeOptions options)
     {
         _loggerFactory = loggerFactory;
+        _options = options;
         _logger = _loggerFactory.CreateLogger<KafkaAtLeastOnceWorkItemManager>();
     }
 
     public void Update(List<TopicPartition> newTopicPartitionList)
     {
+        StopAsync().GetAwaiter().GetResult();
         _logger.LogInformation("Updating topic partition channels");
         foreach (var channel in _channels.Where(kvp => !newTopicPartitionList.Contains(kvp.Key)))
         {
@@ -31,7 +34,7 @@ internal class KafkaAtLeastOnceWorkItemManager : IWorkItemLifetime
             }
             else
             {
-                _channels[topicPartition] = new TopicPartitionChannel(_loggerFactory, topicPartition);
+                _channels[topicPartition] = new TopicPartitionChannel(_loggerFactory, topicPartition, _options);
             }
         }
     }

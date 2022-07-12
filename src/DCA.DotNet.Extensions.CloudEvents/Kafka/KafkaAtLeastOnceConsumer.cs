@@ -12,7 +12,7 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
     private readonly string _pubSubName;
     private readonly KafkaSubscribeOptions _options;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly ILogger<KafkaAtMostOnceConsumer> _logger;
+    private readonly ILogger<KafkaAtLeastOnceConsumer> _logger;
     private readonly KafkaAtLeastOnceWorkItemManager _manager;
 
     public KafkaAtLeastOnceConsumer(
@@ -27,8 +27,8 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
         _pubSubName = pubSubName;
         _options = options;
         _loggerFactory = loggerFactory;
-        _logger = _loggerFactory.CreateLogger<KafkaAtMostOnceConsumer>();
-        _manager = new KafkaAtLeastOnceWorkItemManager(_loggerFactory);
+        _logger = _loggerFactory.CreateLogger<KafkaAtLeastOnceConsumer>();
+        _manager = new KafkaAtLeastOnceWorkItemManager(_loggerFactory, _options);
         _options.ConsumerConfig.EnableAutoCommit = false;
         _consumer = new ConsumerBuilder<Ignore, byte[]>(_options.ConsumerConfig)
             .SetErrorHandler((_, e) =>
@@ -67,7 +67,7 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
         {
             try
             {
-                var consumeResult = _consumer.Consume(10000);
+                ConsumeResult<Ignore, byte[]> consumeResult = _consumer.Consume(10000);
                 if (consumeResult == null)
                 {
                     continue;
@@ -104,15 +104,14 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
 
     public async Task CommitOffsetsLoop(CancellationToken token)
     {
-        var commitTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        var commitTimer = new PeriodicTimer(TimeSpan.FromSeconds(10));
         while (await commitTimer.WaitForNextTickAsync(default))
         {
             if (token.IsCancellationRequested)
             {
                 return;
             }
-            var offsets = _manager.GetOffsets();
-            _consumer.Commit(offsets);
+            CommitOffsets();
         }
     }
 

@@ -62,7 +62,10 @@ internal class KafkaMessageWorkItem : IThreadPoolWorkItem
         {
             var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(_message.Message.Value)!;
             var metadata = new CloudEventMetadata(_pubSubName, _message.Topic, cloudEvent.Type, cloudEvent.Source);
-            await _registry.GetHandler(metadata).Invoke(scope.ServiceProvider, cloudEvent!, _cancellationTokenSource.Token);
+            if (_registry.TryGetHandler(metadata, out var handler))
+            {
+                await _registry.GetHandler(metadata).Invoke(scope.ServiceProvider, cloudEvent!, _cancellationTokenSource.Token);
+            }
         }
         catch (Exception ex)
         {

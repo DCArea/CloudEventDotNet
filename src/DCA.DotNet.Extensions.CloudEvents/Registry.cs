@@ -35,6 +35,12 @@ public class Registry
     {
         return _metadata[eventDataType];
     }
+
+    internal bool TryGetHandler(CloudEventMetadata metadata, out HandleCloudEventDelegate? handler)
+    {
+        return _handlers.TryGetValue(metadata, out handler);
+    }
+
     internal HandleCloudEventDelegate GetHandler(CloudEventMetadata metadata)
     {
         return _handlers[metadata];
