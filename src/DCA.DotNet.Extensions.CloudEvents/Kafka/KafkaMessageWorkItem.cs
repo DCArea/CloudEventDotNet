@@ -1,14 +1,17 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Confluent.Kafka;
+using DCA.DotNet.Extensions.CloudEvents.Diagnostics;
+using DCA.DotNet.Extensions.CloudEvents.Kafka;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace DCA.DotNet.Extensions.CloudEvents;
 
+
 internal class KafkaMessageWorkItem : IThreadPoolWorkItem
 {
-    private readonly string _pubSubName;
+    private readonly ConsumerContext _consumer;
     private readonly ConsumeResult<Ignore, byte[]> _message;
     private readonly IWorkItemLifetime _lifetime;
     private readonly Registry _registry;
@@ -18,14 +21,14 @@ internal class KafkaMessageWorkItem : IThreadPoolWorkItem
     private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     internal KafkaMessageWorkItem(
-        string pubSubName,
+        ConsumerContext consumer,
         ConsumeResult<Ignore, byte[]> message,
         IWorkItemLifetime lifetime,
         Registry registry,
         IServiceScopeFactory scopeFactory,
         ILogger logger)
     {
-        _pubSubName = pubSubName;
+        _consumer = consumer;
         _message = message;
         _lifetime = lifetime;
         _registry = registry;
@@ -57,15 +60,18 @@ internal class KafkaMessageWorkItem : IThreadPoolWorkItem
 
     internal async Task ExecuteAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
         try
         {
             var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(_message.Message.Value)!;
-            var metadata = new CloudEventMetadata(_pubSubName, _message.Topic, cloudEvent.Type, cloudEvent.Source);
+            var metadata = new CloudEventMetadata(_consumer.PubSubName, _message.Topic, cloudEvent.Type, cloudEvent.Source);
+            using var activity = Activities.OnProcess(metadata, cloudEvent);
             if (_registry.TryGetHandler(metadata, out var handler))
             {
-                await _registry.GetHandler(metadata).Invoke(scope.ServiceProvider, cloudEvent!, _cancellationTokenSource.Token);
+                using var scope = _scopeFactory.CreateScope();
+                await handler.Invoke(scope.ServiceProvider, cloudEvent!, _cancellationTokenSource.Token);
             }
+            Metrics.OnCloudEventProcessed(metadata, DateTimeOffset.UtcNow.Subtract(cloudEvent.Time));
+            KafkaInstruments.OnConsumed(activity, _consumer);
         }
         catch (Exception ex)
         {

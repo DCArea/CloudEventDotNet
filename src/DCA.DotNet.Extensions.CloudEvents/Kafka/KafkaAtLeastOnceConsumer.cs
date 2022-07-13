@@ -2,11 +2,12 @@ using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace DCA.DotNet.Extensions.CloudEvents;
+namespace DCA.DotNet.Extensions.CloudEvents.Kafka;
 
 internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
 {
     private readonly IConsumer<Ignore, byte[]> _consumer;
+    private readonly ConsumerContext _consumerContext;
     private readonly Registry _registry;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly string _pubSubName;
@@ -53,6 +54,7 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
                 _logger.LogInformation("Log: {Log}", log);
             })
             .Build();
+        _consumerContext = new ConsumerContext(pubSubName, _consumer.Name, _options.ConsumerConfig.GroupId);
     }
 
     public async Task Subscribe(CancellationToken token)
@@ -74,7 +76,7 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
                 }
                 _logger.LogDebug("Consumed message: {offset}", consumeResult.TopicPartitionOffset);
                 var workItem = new KafkaMessageWorkItem(
-                    _pubSubName,
+                    _consumerContext,
                     consumeResult,
                     _manager,
                     _registry,

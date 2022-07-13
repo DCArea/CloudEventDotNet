@@ -1,5 +1,6 @@
 
 using System.Reflection;
+using DCA.DotNet.Extensions.CloudEvents.Kafka;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -36,7 +37,7 @@ public class Registry
         return _metadata[eventDataType];
     }
 
-    internal bool TryGetHandler(CloudEventMetadata metadata, out HandleCloudEventDelegate? handler)
+    internal bool TryGetHandler(CloudEventMetadata metadata, [NotNullWhen(true)] out HandleCloudEventDelegate? handler)
     {
         return _handlers.TryGetValue(metadata, out handler);
     }

@@ -1,4 +1,5 @@
-
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
@@ -25,7 +26,14 @@ internal class KafkaCloudEventPublisher : ICloudEventPublisher
         {
             Value = JsonSerializer.SerializeToUtf8Bytes(cloudEvent)
         };
-        await _producer.ProduceAsync(topic, message);
-        _logger.LogDebug("Published message to topic {Topic}", topic);
+
+        DeliveryResult<string, byte[]> result = await _producer.ProduceAsync(topic, message);
+        var activity = Activity.Current;
+        if (activity is not null)
+        {
+            // activity.SetTag("messaging.kafka.message_key", message.Key);
+            activity.SetTag("messaging.kafka.client_id", _producer.Name);
+            activity.SetTag("messaging.kafka.partition", result.Partition.Value);
+        }
     }
 }

@@ -1,3 +1,4 @@
+using DCA.DotNet.Extensions.CloudEvents.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -22,7 +23,7 @@ internal class CloudEventPubSub : ICloudEventPubSub
         _registry = registry;
     }
 
-    public Task PublishAsync<TData>(TData data)
+    public async Task PublishAsync<TData>(TData data)
     {
         var dataType = typeof(TData);
         var metadata = _registry.GetMetadata(dataType);
@@ -35,7 +36,9 @@ internal class CloudEventPubSub : ICloudEventPubSub
             DataSchema: null,
             Subject: null
         );
+        using var activity = Activities.OnPublish(metadata, cloudEvent);
         var publisher = _publishers[metadata.PubSubName];
-        return publisher.PublishAsync(metadata.Topic, cloudEvent);
+        await publisher.PublishAsync(metadata.Topic, cloudEvent);
+        Metrics.OnCloudEventPublished(metadata);
     }
 }
