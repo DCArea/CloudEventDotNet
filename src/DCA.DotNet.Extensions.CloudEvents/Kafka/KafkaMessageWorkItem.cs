@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Threading.Tasks.Sources;
 using Confluent.Kafka;
 using DCA.DotNet.Extensions.CloudEvents.Diagnostics;
 using DCA.DotNet.Extensions.CloudEvents.Kafka;
@@ -7,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace DCA.DotNet.Extensions.CloudEvents;
-
 
 internal class KafkaMessageWorkItem : IThreadPoolWorkItem
 {
@@ -38,23 +38,21 @@ internal class KafkaMessageWorkItem : IThreadPoolWorkItem
 
     public TopicPartition TopicPartition => _message.TopicPartition;
     public TopicPartitionOffset TopicPartitionOffset => _message.TopicPartitionOffset;
-    public Task? Task { get; private set; }
 
-    [MemberNotNull(nameof(Task))]
+    private readonly TaskCompletionSource _taskCompletionSource = new();
+    public Task Task => _taskCompletionSource.Task;
+    public bool Started => _started == 1;
+    private int _started = 0;
+
     public void Execute()
     {
-        if (Task != null)
+        if (Interlocked.CompareExchange(ref _started, 1, 0) == 0)
+        {
+            _ = ExecuteAsync();
+        }
+        else
         {
             return;
-        }
-
-        lock (_lockable)
-        {
-            if (Task != null)
-            {
-                return;
-            }
-            Task = ExecuteAsync();
         }
     }
 
@@ -80,6 +78,7 @@ internal class KafkaMessageWorkItem : IThreadPoolWorkItem
         }
         finally
         {
+            _taskCompletionSource.SetResult();
             var vt = _lifetime.OnFinished(this);
             if (!vt.IsCompletedSuccessfully) await vt;
         }

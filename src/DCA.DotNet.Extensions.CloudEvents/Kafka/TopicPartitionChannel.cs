@@ -21,17 +21,26 @@ internal partial class TopicPartitionChannel
         _topicPartition = topicPartition;
         _options = options;
         _logger = loggerFactory.CreateLogger($"{nameof(TopicPartitionChannel)}[{_topicPartition.Topic}:{_topicPartition.Partition.Value}]");
-        _channel = _options.RunningWorkItemLimit > 0
-            ? Channel.CreateBounded<KafkaMessageWorkItem>(new BoundedChannelOptions(_options.RunningWorkItemLimit)
-            {
-                SingleReader = true,
-                SingleWriter = true
-            })
-            : Channel.CreateUnbounded<KafkaMessageWorkItem>(new UnboundedChannelOptions
+
+        if (_options.RunningWorkItemLimit > 0)
+        {
+            _channel = Channel.CreateBounded<KafkaMessageWorkItem>(new BoundedChannelOptions(_options.RunningWorkItemLimit)
             {
                 SingleReader = true,
                 SingleWriter = true
             });
+            _logger.LogDebug("Created bounded channel");
+        }
+        else
+        {
+            _channel = Channel.CreateUnbounded<KafkaMessageWorkItem>(new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = true
+            });
+            _logger.LogDebug("Created unbounded channel");
+        }
+
         Activate();
     }
     public ChannelWriter<KafkaMessageWorkItem> Writer => _channel.Writer;
@@ -68,7 +77,7 @@ internal partial class TopicPartitionChannel
             {
                 if (_channel.Reader.TryRead(out var item))
                 {
-                    if (item.Task == null)
+                    if (!item.Started)
                     {
                         item.Execute();
                     }

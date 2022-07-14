@@ -22,8 +22,8 @@ var deliveryGuarantee = Environment.GetEnvironmentVariable("KAFKA_DELIVERY_GUARA
 };
 
 var services = new ServiceCollection()
-// .AddLogging();
-.AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
+.AddLogging();
+// .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
 // .AddLogging(logging => logging.AddConsole().AddFilter((category, level) => category.Contains("TopicPartitionChannel")));
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Debug));
 services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: topic)

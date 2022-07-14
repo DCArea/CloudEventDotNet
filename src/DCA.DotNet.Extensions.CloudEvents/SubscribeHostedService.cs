@@ -30,6 +30,10 @@ public class SubscribeHostedService : IHostedService
         var tasks = new List<Task>();
         foreach (var (pubsub, subscriber) in _subscribers)
         {
+            // var task = Task.Factory.StartNew(
+            //     () => Subscribe(subscriber, _stoppingCts.Token),
+            //     _stoppingCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
+            // tasks.Add(task);
             tasks.Add(Task.Run(() => Subscribe(subscriber, _stoppingCts.Token), default));
         }
         _task = Task.WhenAll(tasks);

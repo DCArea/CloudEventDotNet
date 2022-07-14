@@ -10,7 +10,6 @@ public class KafkaPublishOptions
 public class KafkaSubscribeOptions
 {
     public ConsumerConfig ConsumerConfig { get; set; } = new ConsumerConfig();
-    public List<string> Topics { get; set; } = new();
     public DeliveryGuarantee DeliveryGuarantee { get; set; } = DeliveryGuarantee.AtMostOnce;
     public int RunningWorkItemLimit { get; set; } = 1024;
 }

@@ -57,7 +57,11 @@ internal class KafkaAtMostOnceWorkItemManager : IWorkItemLifetime
             }
             foreach (var workItem in runningItems)
             {
-                if (workItem.Task == null)
+                if (workItem is null)
+                {
+                    return;
+                }
+                if (!workItem.Started)
                 {
                     workItem.Execute();
                 }
