@@ -27,7 +27,7 @@ internal class KafkaCloudEventPublisher : ICloudEventPublisher
             Value = JsonSerializer.SerializeToUtf8Bytes(cloudEvent)
         };
 
-        DeliveryResult<string, byte[]> result = await _producer.ProduceAsync(topic, message);
+        DeliveryResult<string, byte[]> result = await _producer.ProduceAsync(topic, message).ConfigureAwait(false);
         var activity = Activity.Current;
         if (activity is not null)
         {

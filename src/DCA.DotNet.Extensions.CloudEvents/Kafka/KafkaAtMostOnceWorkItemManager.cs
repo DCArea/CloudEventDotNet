@@ -65,9 +65,10 @@ internal class KafkaAtMostOnceWorkItemManager : IWorkItemLifetime
                 {
                     workItem.Execute();
                 }
-                if (!workItem.Task.IsCompleted)
+                var vt = workItem.WaitToCompleteAsync();
+                if (!vt.IsCompletedSuccessfully)
                 {
-                    await workItem.Task;
+                    await vt;
                 }
             }
             await Task.Delay(TimeSpan.FromSeconds(1));

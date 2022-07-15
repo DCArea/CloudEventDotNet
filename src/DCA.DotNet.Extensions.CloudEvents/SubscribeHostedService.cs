@@ -30,22 +30,21 @@ public class SubscribeHostedService : IHostedService
         var tasks = new List<Task>();
         foreach (var (pubsub, subscriber) in _subscribers)
         {
-            // var task = Task.Factory.StartNew(
-            //     () => Subscribe(subscriber, _stoppingCts.Token),
-            //     _stoppingCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
-            // tasks.Add(task);
-            tasks.Add(Task.Run(() => Subscribe(subscriber, _stoppingCts.Token), default));
+            var task = Task.Factory.StartNew(
+                () => Subscribe(subscriber, _stoppingCts.Token),
+                _stoppingCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            tasks.Add(task);
         }
         _task = Task.WhenAll(tasks);
         _logger.LogInformation("Started subscribers");
         return Task.CompletedTask;
     }
 
-    private async Task Subscribe(ICloudEventSubscriber subscriber, CancellationToken cancellationToken)
+    private void Subscribe(ICloudEventSubscriber subscriber, CancellationToken cancellationToken)
     {
         try
         {
-            await subscriber.Subscribe(cancellationToken);
+            subscriber.Subscribe(cancellationToken);
         }
         catch (Exception e)
         {

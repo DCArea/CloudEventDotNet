@@ -60,9 +60,8 @@ internal class KafkaAtMostOnceConsumer : ICloudEventSubscriber
         _consumerContext = new ConsumerContext(pubSubName, _consumer.Name, _options.ConsumerConfig.GroupId);
     }
 
-    public async Task Subscribe(CancellationToken token)
+    public void Subscribe(CancellationToken token)
     {
-
         var topics = _registry.GetTopics(_pubSubName);
         _consumer.Subscribe(topics);
         _logger.LogInformation("Consumer {name} subscribed to topics: {Topics}", _consumer.Name, topics);
@@ -73,7 +72,7 @@ internal class KafkaAtMostOnceConsumer : ICloudEventSubscriber
             {
                 if (_semaphore != null)
                 {
-                    await _semaphore.WaitAsync(token);
+                    _semaphore.Wait(token);
                 }
                 _logger.LogDebug("Consuming message");
                 var consumeResult = _consumer.Consume(2000);
@@ -90,9 +89,9 @@ internal class KafkaAtMostOnceConsumer : ICloudEventSubscriber
                     _scopeFactory,
                     _logger);
                 var vt = _manager.OnReceived(workItem);
-                if (!vt.IsCompleted)
+                if (!vt.IsCompletedSuccessfully)
                 {
-                    await vt;
+                    vt.ConfigureAwait(false).GetAwaiter().GetResult();
                 }
                 ThreadPool.UnsafeQueueUserWorkItem(workItem, preferLocal: false);
             }
@@ -107,6 +106,6 @@ internal class KafkaAtMostOnceConsumer : ICloudEventSubscriber
             }
         }
         _consumer.Close();
-        await _manager.StopAsync();
+        _manager.StopAsync().GetAwaiter().GetResult();
     }
 }

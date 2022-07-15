@@ -26,4 +26,6 @@ internal static class Metrics
         var aggregator = s_cloudEventsDeliveryLatency.FindOrCreate(new("pubsub", metadata.PubSubName, "topic", metadata.Topic, "type", metadata.Type));
         aggregator.Record((long)latency.TotalMilliseconds);
     }
+
+    public static readonly CounterAggregatorGroup TopicPartitionChannelRead = new(Meter, "dca_cloudevents_kafka_channel_read");
 }

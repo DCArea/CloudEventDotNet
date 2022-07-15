@@ -22,10 +22,11 @@ var deliveryGuarantee = Environment.GetEnvironmentVariable("KAFKA_DELIVERY_GUARA
 };
 
 var services = new ServiceCollection()
-.AddLogging();
+// .AddLogging();
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
 // .AddLogging(logging => logging.AddConsole().AddFilter((category, level) => category.Contains("TopicPartitionChannel")));
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Debug));
+.AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Warning));
 services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: topic)
     .Load(typeof(Ping).Assembly)
     .AddKafkaPubSub("kafka", options =>
@@ -34,6 +35,7 @@ services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: topic)
         {
             BootstrapServers = broker,
             Acks = Acks.Leader,
+            LingerMs = 10
         };
     }, options =>
     {
@@ -42,6 +44,9 @@ services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: topic)
             BootstrapServers = broker,
             GroupId = consumerGroup,
             AutoOffsetReset = autoOffsetReset,
+
+            QueuedMinMessages = 300_000,
+            FetchWaitMaxMs = 1_000
         };
         options.RunningWorkItemLimit = runningWorkItemLimit;
         options.DeliveryGuarantee = deliveryGuarantee;

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text.Json;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Diagnostics;
 

@@ -38,7 +38,7 @@ internal class CloudEventPubSub : ICloudEventPubSub
         );
         using var activity = Activities.OnPublish(metadata, cloudEvent);
         var publisher = _publishers[metadata.PubSubName];
-        await publisher.PublishAsync(metadata.Topic, cloudEvent);
+        await publisher.PublishAsync(metadata.Topic, cloudEvent).ConfigureAwait(false);
         Metrics.OnCloudEventPublished(metadata);
     }
 }

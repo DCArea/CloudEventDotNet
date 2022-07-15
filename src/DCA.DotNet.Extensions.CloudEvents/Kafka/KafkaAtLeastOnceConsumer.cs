@@ -57,13 +57,13 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
         _consumerContext = new ConsumerContext(pubSubName, _consumer.Name, _options.ConsumerConfig.GroupId);
     }
 
-    public async Task Subscribe(CancellationToken token)
+    public void Subscribe(CancellationToken token)
     {
         var topics = _registry.GetTopics(_pubSubName);
         _consumer.Subscribe(topics);
         _logger.LogInformation("Consumer {name} subscribed to topics: {Topics}", _consumer.Name, topics);
 
-        var commitTask = Task.Run(() => CommitOffsetsLoop(token), default);
+        var commitTimer = new Timer(_ => CommitOffsets(), null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
 
         while (!token.IsCancellationRequested)
         {
@@ -85,7 +85,7 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
                 var vt = _manager.OnReceived(workItem);
                 if (!vt.IsCompletedSuccessfully)
                 {
-                    await vt;
+                    vt.ConfigureAwait(false).GetAwaiter().GetResult();
                 }
                 ThreadPool.UnsafeQueueUserWorkItem(workItem, preferLocal: false);
             }
@@ -97,27 +97,14 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
 
         _logger.LogInformation("Stoping consumer", _consumer.Name);
         _consumer.Unsubscribe();
-        await _manager.StopAsync();
+        _manager.StopAsync().GetAwaiter().GetResult();
         _logger.LogInformation("Finished processing inflighting workitems");
-        await commitTask;
+        commitTimer.Dispose();
         CommitOffsets();
         _consumer.Close();
     }
 
-    public async Task CommitOffsetsLoop(CancellationToken token)
-    {
-        var commitTimer = new PeriodicTimer(TimeSpan.FromSeconds(10));
-        while (await commitTimer.WaitForNextTickAsync(default))
-        {
-            if (token.IsCancellationRequested)
-            {
-                return;
-            }
-            CommitOffsets();
-        }
-    }
-
-    public void CommitOffsets()
+    private void CommitOffsets()
     {
         var offsets = _manager.GetOffsets().Select(offset => new TopicPartitionOffset(offset.TopicPartition, offset.Offset + 1));
         _consumer.Commit(offsets);
