@@ -1,0 +1,30 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <SourceLinkCreate>true</SourceLinkCreate>
+    <SourceLinkOriginUrl>https://github.com/DCArea/DCA.DotNet.Extensions</SourceLinkOriginUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsPackable)'=='true' and '$(SourceLinkCreate)'=='true'">
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <!-- <DebugType>embedded</DebugType> -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(IsPackable)'=='true' and '$(SourceLinkCreate)'=='true'">
+    <PackageReference Include="Microsoft.SourceLink.GitLab" Version="1.1.1" PrivateAssets="All"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>$(AssemblyName).Test</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>
