@@ -108,6 +108,6 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
     {
         var offsets = _manager.GetOffsets().Select(offset => new TopicPartitionOffset(offset.TopicPartition, offset.Offset + 1));
         _consumer.Commit(offsets);
-        _logger.LogInformation("Committed offsets: {Offsets}", offsets);
+        _logger.LogDebug("Committed offsets: {Offsets}", offsets);
     }
 }

@@ -45,14 +45,47 @@ public class ActivityTests
             null,
             null
         );
-        var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(JsonSerializer.Serialize(sourceEvent));
-        var metadata = new CloudEventMetadata("testpubsub", "testtopic", cloudEvent!.Type, cloudEvent.Source);
+        var metadata = new CloudEventMetadata("testpubsub", "testtopic", sourceEvent!.Type, sourceEvent.Source);
 
         var publishActivity = Activities.OnPublish(metadata, sourceEvent);
         Assert.NotNull(publishActivity);
-        publishActivity!.Stop();
+        Assert.Equal(publishActivity!.Id?.ToString(), sourceEvent.Extensions["traceparent"]?.ToString());
+        Assert.Equal(publishActivity.TraceStateString?.ToString(), sourceEvent.Extensions["tracestate"]?.ToString());
+        publishActivity.Stop();
         Activity.Current = null;
 
+
+        var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(JsonSerializer.Serialize(sourceEvent));
+        metadata = new CloudEventMetadata("testpubsub", "testtopic", cloudEvent!.Type, cloudEvent.Source);
+        Assert.Equal(publishActivity!.Id?.ToString(), cloudEvent!.Extensions["traceparent"].GetString());
+        Assert.Equal(publishActivity.TraceStateString?.ToString(), cloudEvent.Extensions["tracestate"].GetString());
+
+        var processActivity = Activities.OnProcess(metadata, cloudEvent);
+        Assert.NotNull(processActivity);
+
+        Assert.Equal(publishActivity!.Id?.ToString(), processActivity!.ParentId);
+    }
+
+
+    [Fact]
+    public void ShouldIgnoreNullTraceContext()
+    {
+        // var traceParentId = new Activity("test").Id;
+        var sourceEvent = new CloudEvent<SimpleEvent>(
+            Id: Guid.NewGuid().ToString(),
+            Source: "testsource",
+            Type: "simpleevent",
+            DateTimeOffset.UtcNow,
+            Data: new SimpleEvent("foo", "bar"),
+            null,
+            null
+        );
+        sourceEvent.Extensions["traceparent"] = null;
+        sourceEvent.Extensions["tracestate"] = null;
+
+        var json = JsonSerializer.Serialize(sourceEvent);
+        var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(json);
+        var metadata = new CloudEventMetadata("testpubsub", "testtopic", cloudEvent!.Type, cloudEvent.Source);
         var processActivity = Activities.OnProcess(metadata, cloudEvent);
         Assert.NotNull(processActivity);
     }

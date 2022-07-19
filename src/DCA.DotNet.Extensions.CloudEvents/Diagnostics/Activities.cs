@@ -24,11 +24,10 @@ internal static class Activities
             }
             if (cloudEvent.Extensions is null)
             {
-                cloudEvent.Extensions = new Dictionary<string, object?>{
-                    { "traceparent", activity.Id },
-                    { "tracestate", activity.TraceStateString },
-                };
+                cloudEvent.Extensions = new();
             }
+            cloudEvent.Extensions["traceparent"] = activity.Id;
+            cloudEvent.Extensions["tracestate"] = activity.TraceStateString;
         }
         return activity;
     }
@@ -36,7 +35,14 @@ internal static class Activities
 
     public static Activity? OnProcess(CloudEventMetadata metadata, CloudEvent cloudEvent)
     {
-        ActivityContext.TryParse((string?)cloudEvent.Extensions?["traceparent"], (string?)cloudEvent.Extensions?["tracestate"], out var parentContext);
+        ActivityContext parentContext = default;
+        if (cloudEvent.Extensions is not null && cloudEvent.Extensions.Count != 0)
+        {
+            cloudEvent.Extensions.TryGetValue("traceparent", out var traceparent);
+            cloudEvent.Extensions.TryGetValue("tracestate", out var tracestate);
+
+            ActivityContext.TryParse(traceparent.GetString(), tracestate.GetString(), out parentContext);
+        }
         var activity = Source.StartActivity($"CloudEvents Process  {cloudEvent.Type}", ActivityKind.Consumer, parentContext);
         if (activity is not null)
         {

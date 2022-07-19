@@ -77,6 +77,7 @@ public class PubSubBuilder
             }
         }
         Services.AddSingleton(registry);
+        // registry.Debug();
         return this;
     }
 

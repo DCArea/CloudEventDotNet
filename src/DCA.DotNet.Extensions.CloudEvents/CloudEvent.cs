@@ -27,7 +27,7 @@ internal record CloudEvent(
     public string SpecVersion { get; } = "1.0";
 
     [JsonExtensionData]
-    public Dictionary<string, object?>? Extensions { get; set; }
+    public Dictionary<string, JsonElement> Extensions { get; set; } = new();
 }
 
 public record CloudEvent<TData>(
@@ -54,5 +54,5 @@ public record CloudEvent<TData>(
     public string SpecVersion { get; } = "1.0";
 
     [JsonExtensionData]
-    public Dictionary<string, object?>? Extensions { get; set; }
+    public Dictionary<string, object?> Extensions { get; set; } = new();
 }

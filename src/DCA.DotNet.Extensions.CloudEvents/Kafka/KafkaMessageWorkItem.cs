@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Threading.Tasks.Sources;
 using Confluent.Kafka;
@@ -68,15 +67,17 @@ internal class KafkaMessageWorkItem : IThreadPoolWorkItem//, IValueTaskSource// 
             using var activity = Activities.OnProcess(metadata, cloudEvent);
             if (_registry.TryGetHandler(metadata, out var handler))
             {
-                using (var scope = _scopeFactory.CreateScope())
-                {
-                    await handler
-                        .Invoke(scope.ServiceProvider, cloudEvent!, _cancellationTokenSource.Token)
-                        .ConfigureAwait(false);
-                }
+                using var scope = _scopeFactory.CreateScope();
+                await handler
+                    .Invoke(scope.ServiceProvider, cloudEvent!, _cancellationTokenSource.Token)
+                    .ConfigureAwait(false);
+                Metrics.OnCloudEventProcessed(metadata, DateTimeOffset.UtcNow.Subtract(cloudEvent.Time));
+                KafkaInstruments.OnConsumed(activity, _consumer);
             }
-            Metrics.OnCloudEventProcessed(metadata, DateTimeOffset.UtcNow.Subtract(cloudEvent.Time));
-            KafkaInstruments.OnConsumed(activity, _consumer);
+            else
+            {
+                _logger.LogWarning("No handler found for {Metadata}", metadata);
+            }
         }
         catch (Exception ex)
         {
