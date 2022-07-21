@@ -3,16 +3,18 @@ using System.Diagnostics.Metrics;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Diagnostics.Aggregators;
 
-internal sealed class CounterAggregatorGroup
+public sealed class CounterAggregatorGroup
 {
-    internal ConcurrentDictionary<TagList, CounterAggregator> Aggregators { get; } = new();
+    public ConcurrentDictionary<TagList, CounterAggregator> Aggregators { get; } = new();
+    public ObservableCounter<long> Instrument { get; }
+
     public CounterAggregatorGroup(
         Meter meter,
         string name,
         string? unit = null,
         string? description = null)
     {
-        meter.CreateObservableCounter(name, Collect, unit, description);
+        Instrument = meter.CreateObservableCounter(name, Collect, unit, description);
     }
 
     public CounterAggregator FindOrCreate(TagList tagList)
@@ -23,6 +25,7 @@ internal sealed class CounterAggregatorGroup
         }
         return Aggregators.GetOrAdd(tagList, new CounterAggregator(tagList));
     }
+
 
     public void Add(long measurement, string tagName1, object tagValue1)
         => FindOrCreate(new(tagName1, tagValue1))

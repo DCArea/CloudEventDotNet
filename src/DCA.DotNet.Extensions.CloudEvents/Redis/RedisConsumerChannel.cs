@@ -1,32 +1,27 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Channels;
-using Confluent.Kafka;
 using DCA.DotNet.Extensions.CloudEvents.Diagnostics.Aggregators;
 using Microsoft.Extensions.Logging;
 
-namespace DCA.DotNet.Extensions.CloudEvents.Kafka;
+namespace DCA.DotNet.Extensions.CloudEvents.Redis;
 
-internal partial class TopicPartitionChannel
+internal partial class RedisMessageChannel
 {
-    private readonly Channel<KafkaMessageWorkItem> _channel;
-    private readonly TopicPartition _topicPartition;
-    private readonly KafkaSubscribeOptions _options;
+    private readonly Channel<RedisMessageWorkItem> _channel;
     private readonly ILogger _logger;
     private readonly CounterAggregator _counter;
     private CancellationTokenSource? _cancellationTokenSource;
 
-    public TopicPartitionChannel(
+    public RedisMessageChannel(
         ILoggerFactory loggerFactory,
-        TopicPartition topicPartition,
-        KafkaSubscribeOptions options)
+        RedisMessageChannelContext context,
+        int capacity)
     {
-        _topicPartition = topicPartition;
-        _options = options;
-        _logger = loggerFactory.CreateLogger($"{nameof(TopicPartitionChannel)}[{_topicPartition.Topic}:{_topicPartition.Partition.Value}]");
+        _logger = loggerFactory.CreateLogger($"{nameof(RedisMessageChannel)}[{context.Topic}]");
 
-        if (_options.RunningWorkItemLimit > 0)
+        if (capacity > 0)
         {
-            _channel = Channel.CreateBounded<KafkaMessageWorkItem>(new BoundedChannelOptions(_options.RunningWorkItemLimit)
+            _channel = Channel.CreateBounded<RedisMessageWorkItem>(new BoundedChannelOptions(capacity)
             {
                 SingleReader = true,
                 SingleWriter = true
@@ -35,7 +30,7 @@ internal partial class TopicPartitionChannel
         }
         else
         {
-            _channel = Channel.CreateUnbounded<KafkaMessageWorkItem>(new UnboundedChannelOptions
+            _channel = Channel.CreateUnbounded<RedisMessageWorkItem>(new UnboundedChannelOptions
             {
                 SingleReader = true,
                 SingleWriter = true
@@ -43,14 +38,25 @@ internal partial class TopicPartitionChannel
             _logger.LogDebug("Created unbounded channel");
         }
 
-        _counter = CloudEventInstruments.MessageChannelRead.FindOrCreate(new("topic", _topicPartition.Topic, "partition", _topicPartition.Partition.Value));
+        _counter = CloudEventInstruments.MessageChannelRead.FindOrCreate(new("pubsub", context.PubSubName, "topic", context.Topic));
 
         Activate();
     }
-    public ChannelWriter<KafkaMessageWorkItem> Writer => _channel.Writer;
+    public ChannelWriter<RedisMessageWorkItem> Writer => _channel.Writer;
+    public async ValueTask WriteAsync(RedisMessageWorkItem item)
+    {
+        if (Writer.TryWrite(item))
+        {
+            return;
+        }
+        else
+        {
+            await Writer.WriteAsync(item);
+        }
+        ThreadPool.UnsafeQueueUserWorkItem(item, false);
+    }
 
     public Task PollTask { get; private set; }
-    public TopicPartitionOffset? Offset { get; private set; }
 
     [MemberNotNull(nameof(PollTask))]
     public void Activate()
@@ -95,8 +101,6 @@ internal partial class TopicPartitionChannel
                         await vt;
                         Log.WorkItemCompleted(_logger);
                     }
-                    Offset = workItem.TopicPartitionOffset;
-                    Log.CheckedOffset(_logger, Offset.Offset);
                 }
                 else
                 {
@@ -166,12 +170,6 @@ internal partial class TopicPartitionChannel
             Level = LogLevel.Trace,
             Message = "Work item completed")]
         public static partial void WorkItemCompleted(ILogger logger);
-
-        [LoggerMessage(
-            EventId = 10300,
-            Level = LogLevel.Trace,
-            Message = "Checked offset {offset}")]
-        public static partial void CheckedOffset(ILogger logger, Offset offset);
 
         [LoggerMessage(
             EventId = 10400,

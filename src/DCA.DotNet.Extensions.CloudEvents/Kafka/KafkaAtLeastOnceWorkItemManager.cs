@@ -1,9 +1,9 @@
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 
-namespace DCA.DotNet.Extensions.CloudEvents;
+namespace DCA.DotNet.Extensions.CloudEvents.Kafka;
 
-internal class KafkaAtLeastOnceWorkItemManager : IWorkItemLifetime
+internal class KafkaAtLeastOnceWorkItemManager : KafkaWorkItemLifetime
 {
     private readonly Dictionary<TopicPartition, TopicPartitionChannel> _channels = new();
     private readonly ILogger<KafkaAtLeastOnceWorkItemManager> _logger;

@@ -1,12 +1,15 @@
 using System.Diagnostics;
 using System.Reflection.Metadata.Ecma335;
 using Confluent.Kafka;
+using DCA.DotNet.Extensions.CloudEvents.Diagnostics.Aggregators;
 using Microsoft.Extensions.Logging;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Kafka;
 
 public static partial class KafkaInstruments
 {
+
+
     [LoggerMessage(
         EventId = 40001,
         Level = LogLevel.Debug,

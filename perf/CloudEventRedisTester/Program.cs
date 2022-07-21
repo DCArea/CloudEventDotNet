@@ -1,55 +1,32 @@
 
 using System.Diagnostics;
-using CloudEventKafkaTester;
-using Confluent.Kafka;
+using CloudEventRedisTester;
 using DCA.DotNet.Extensions.CloudEvents;
+using StackExchange.Redis;
 
-string broker = Environment.GetEnvironmentVariable("KAFKA_BROKER") ?? "localhost:9092";
-string topic = Environment.GetEnvironmentVariable("KAFKA_TOPIC") ?? "devperftest";
-string consumerGroup = Environment.GetEnvironmentVariable("KAFKA_CONSUMER_GROUP") ?? "devperftest";
-int runningWorkItemLimit = int.Parse(Environment.GetEnvironmentVariable("KAFKA_RUNNING_WORK_ITEM_LIMIT") ?? "1024");
-var autoOffsetReset = Environment.GetEnvironmentVariable("KAFKA_AUTO_OFFSET_RESET") switch
-{
-    "latest" => AutoOffsetReset.Latest,
-    "earliest" => AutoOffsetReset.Earliest,
-    _ => AutoOffsetReset.Latest
-};
-var deliveryGuarantee = Environment.GetEnvironmentVariable("KAFKA_DELIVERY_GUARANTEE") switch
-{
-    "at_least_once" => DeliveryGuarantee.AtLeastOnce,
-    "at_most_once" => DeliveryGuarantee.AtMostOnce,
-    _ => DeliveryGuarantee.AtLeastOnce
-};
+string redisConnectionString = Environment.GetEnvironmentVariable("CONNSTR") ?? "localhost:6379";
+string topic = Environment.GetEnvironmentVariable("TOPIC") ?? "devperftest";
+string consumerGroup = Environment.GetEnvironmentVariable("CONSUMER_GROUP") ?? "devperftest";
+int runningWorkItemLimit = int.Parse(Environment.GetEnvironmentVariable("RUNNING_WORK_ITEM_LIMIT") ?? "1024");
 
 var services = new ServiceCollection()
 // .AddLogging();
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
-// .AddLogging(logging => logging.AddConsole().AddFilter((category, level) => category.Contains("TopicPartitionChannel")));
 .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Debug));
-// .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Warning));
-services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: topic)
+// .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Trace));
+
+var redis = ConnectionMultiplexer.Connect(redisConnectionString);
+
+services.AddCloudEvents(defaultPubSubName: "redis", defaultTopic: topic)
     .Load(typeof(Ping).Assembly)
-    .AddKafkaPubSub("kafka", options =>
+    .AddRedisPubSub("redis", options =>
     {
-        options.ProducerConfig = new ProducerConfig
-        {
-            BootstrapServers = broker,
-            Acks = Acks.Leader,
-            LingerMs = 10
-        };
+        options.ConnectionMultiplexerFactory = () => redis;
     }, options =>
     {
-        options.ConsumerConfig = new ConsumerConfig
-        {
-            BootstrapServers = broker,
-            GroupId = consumerGroup,
-            AutoOffsetReset = autoOffsetReset,
-
-            QueuedMinMessages = 300_000,
-            FetchWaitMaxMs = 1_000
-        };
+        options.ConnectionMultiplexerFactory = () => redis;
+        options.ConsumerGroup = consumerGroup;
         options.RunningWorkItemLimit = runningWorkItemLimit;
-        options.DeliveryGuarantee = deliveryGuarantee;
     });
 
 var sp = services.BuildServiceProvider();
@@ -80,7 +57,7 @@ async Task Publish()
     {
         var task = Task.Run(async () =>
         {
-            for (var j = 0; j < count; j++)
+            for (int j = 0; j < count; j++)
             {
                 await pubsub.PublishAsync(new Ping());
             }

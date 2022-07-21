@@ -2,9 +2,10 @@ using System.Diagnostics.Metrics;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Diagnostics.Aggregators;
 
-internal sealed class CounterAggregator
+public sealed class CounterAggregator
 {
     private readonly KeyValuePair<string, object?>[] _tags;
+    private readonly ObservableCounter<long>? _instrument;
     private long _value = 0;
 
     public CounterAggregator(
@@ -14,7 +15,7 @@ internal sealed class CounterAggregator
         string? unit = null,
         string? description = null) : this(tagList)
     {
-        meter.CreateObservableCounter(name, Collect, unit, description);
+        _instrument = meter.CreateObservableCounter(name, Collect, unit, description);
     }
 
     public CounterAggregator(Meter meter, string name, string? unit = null, string? description = null)
@@ -26,6 +27,8 @@ internal sealed class CounterAggregator
     {
         _tags = tagList.ToArray();
     }
+
+    public bool Enabled => _instrument?.Enabled ?? false;
 
     public long Value => _value;
 

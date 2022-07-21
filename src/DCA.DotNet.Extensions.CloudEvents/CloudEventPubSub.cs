@@ -1,4 +1,3 @@
-using DCA.DotNet.Extensions.CloudEvents.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -36,9 +35,9 @@ internal class CloudEventPubSub : ICloudEventPubSub
             DataSchema: null,
             Subject: null
         );
-        using var activity = Activities.OnPublish(metadata, cloudEvent);
+        using var activity = CloudEventInstruments.OnCloudEventPublishing(metadata, cloudEvent);
         var publisher = _publishers[metadata.PubSubName];
         await publisher.PublishAsync(metadata.Topic, cloudEvent).ConfigureAwait(false);
-        Metrics.OnCloudEventPublished(metadata);
+        CloudEventInstruments.OnCloudEventPublished(metadata);
     }
 }

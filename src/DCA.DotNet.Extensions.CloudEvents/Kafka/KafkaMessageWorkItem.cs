@@ -1,18 +1,15 @@
 using System.Text.Json;
-using System.Threading.Tasks.Sources;
 using Confluent.Kafka;
-using DCA.DotNet.Extensions.CloudEvents.Diagnostics;
-using DCA.DotNet.Extensions.CloudEvents.Kafka;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace DCA.DotNet.Extensions.CloudEvents;
+namespace DCA.DotNet.Extensions.CloudEvents.Kafka;
 
-internal class KafkaMessageWorkItem : IThreadPoolWorkItem//, IValueTaskSource// IAsyncDisposable
+internal class KafkaMessageWorkItem : IThreadPoolWorkItem
 {
     private readonly ConsumerContext _consumer;
     private readonly ConsumeResult<Ignore, byte[]> _message;
-    private readonly IWorkItemLifetime _lifetime;
+    private readonly KafkaWorkItemLifetime _lifetime;
     private readonly Registry _registry;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger _logger;
@@ -21,7 +18,7 @@ internal class KafkaMessageWorkItem : IThreadPoolWorkItem//, IValueTaskSource// 
     internal KafkaMessageWorkItem(
         ConsumerContext consumer,
         ConsumeResult<Ignore, byte[]> message,
-        IWorkItemLifetime lifetime,
+        KafkaWorkItemLifetime lifetime,
         Registry registry,
         IServiceScopeFactory scopeFactory,
         ILogger logger)
@@ -64,14 +61,14 @@ internal class KafkaMessageWorkItem : IThreadPoolWorkItem//, IValueTaskSource// 
         {
             var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(_message.Message.Value)!;
             var metadata = new CloudEventMetadata(_consumer.PubSubName, _message.Topic, cloudEvent.Type, cloudEvent.Source);
-            using var activity = Activities.OnProcess(metadata, cloudEvent);
+            using var activity = CloudEventInstruments.OnProcess(metadata, cloudEvent);
             if (_registry.TryGetHandler(metadata, out var handler))
             {
                 using var scope = _scopeFactory.CreateScope();
                 await handler
                     .Invoke(scope.ServiceProvider, cloudEvent!, _cancellationTokenSource.Token)
                     .ConfigureAwait(false);
-                Metrics.OnCloudEventProcessed(metadata, DateTimeOffset.UtcNow.Subtract(cloudEvent.Time));
+                CloudEventInstruments.OnCloudEventProcessed(metadata, DateTimeOffset.UtcNow.Subtract(cloudEvent.Time));
                 KafkaInstruments.OnConsumed(activity, _consumer);
             }
             else
@@ -92,18 +89,3 @@ internal class KafkaMessageWorkItem : IThreadPoolWorkItem//, IValueTaskSource// 
     }
 }
 
-internal class WorkItemWaiter : IValueTaskSource
-{
-    private ManualResetValueTaskSourceCore<bool> _tcs;
-    public void GetResult(short token) => _tcs.GetResult(token);
-    public ValueTaskSourceStatus GetStatus(short token) => _tcs.GetStatus(token);
-    public void OnCompleted(
-        Action<object?> continuation,
-        object? state,
-        short token,
-        ValueTaskSourceOnCompletedFlags flags)
-        => _tcs.OnCompleted(continuation, state, token, flags);
-
-    public void SetResult() => _tcs.SetResult(true);
-    public ValueTask Task => new ValueTask(this, _tcs.Version);
-}

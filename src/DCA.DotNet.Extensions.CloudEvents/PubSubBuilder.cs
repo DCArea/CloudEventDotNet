@@ -72,57 +72,12 @@ public class PubSubBuilder
                 typeof(Registry)
                     .GetMethod(nameof(Registry.RegisterHandler), BindingFlags.NonPublic | BindingFlags.Instance)!
                     .MakeGenericMethod(eventDataType)!
-                    .Invoke(registry, new[] { registry.GetMetadata(eventDataType) });
+                    .Invoke(registry, new[] { (object)registry.GetMetadata(eventDataType) });
                 Services.AddScoped(handlerInterface, type);
             }
         }
         Services.AddSingleton(registry);
         // registry.Debug();
-        return this;
-    }
-
-    public PubSubBuilder AddKafkaPubSub(
-        string name,
-        Action<KafkaPublishOptions>? configurePublish,
-        Action<KafkaSubscribeOptions>? configureSubscribe)
-    {
-        if (configurePublish is not null)
-        {
-            Services.Configure<KafkaPublishOptions>(name, configurePublish);
-            Services.Configure<PubSubOptions>(options =>
-            {
-                ICloudEventPublisher factory(IServiceProvider sp)
-                {
-                    var optionsFactory = sp.GetRequiredService<IOptionsFactory<KafkaPublishOptions>>();
-                    var options = optionsFactory.Create(name);
-                    return ActivatorUtilities.CreateInstance<KafkaCloudEventPublisher>(sp, options);
-                }
-                options.PublisherFactoris[name] = factory;
-            });
-        }
-
-        if (configureSubscribe is not null)
-        {
-            Services.Configure<KafkaSubscribeOptions>(name, configureSubscribe);
-            Services.Configure<PubSubOptions>(options =>
-            {
-                ICloudEventSubscriber factory(IServiceProvider sp)
-                {
-                    var optionsFactory = sp.GetRequiredService<IOptionsFactory<KafkaSubscribeOptions>>();
-                    var options = optionsFactory.Create(name);
-                    return options.DeliveryGuarantee switch
-                    {
-                        DeliveryGuarantee.AtMostOnce
-                            => ActivatorUtilities.CreateInstance<KafkaAtMostOnceConsumer>(sp, name, options),
-                        DeliveryGuarantee.AtLeastOnce
-                            => ActivatorUtilities.CreateInstance<KafkaAtLeastOnceConsumer>(sp, name, options),
-                        _ => throw new NotImplementedException(),
-                    };
-                }
-                options.SubscriberFactoris[name] = factory;
-            });
-        }
-
         return this;
     }
 }

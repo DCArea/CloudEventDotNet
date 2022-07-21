@@ -6,7 +6,7 @@ namespace DCA.DotNet.Extensions.CloudEvents;
 
 internal delegate Task HandleCloudEventDelegate(IServiceProvider serviceProvider, CloudEvent @event, CancellationToken token);
 
-public class Registry
+public sealed class Registry
 {
     private readonly Dictionary<Type, CloudEventMetadata> _metadata = new();
     private readonly Dictionary<CloudEventMetadata, HandleCloudEventDelegate> _handlers = new();

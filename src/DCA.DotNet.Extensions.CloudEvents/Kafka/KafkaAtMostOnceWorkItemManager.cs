@@ -1,17 +1,18 @@
 using System.Collections.Concurrent;
 using Confluent.Kafka;
+using DCA.DotNet.Extensions.CloudEvents.Kafka;
 using Microsoft.Extensions.Logging;
 
 namespace DCA.DotNet.Extensions.CloudEvents;
 
-internal interface IWorkItemLifetime
+internal interface KafkaWorkItemLifetime
 {
     ValueTask OnReceived(KafkaMessageWorkItem workItem);
     ValueTask OnFinished(KafkaMessageWorkItem workItem);
     Task StopAsync();
 }
 
-internal class KafkaAtMostOnceWorkItemManager : IWorkItemLifetime
+internal class KafkaAtMostOnceWorkItemManager : KafkaWorkItemLifetime
 {
     private readonly ConcurrentDictionary<TopicPartitionOffset, KafkaMessageWorkItem> _runningWorkItems = new();
     private readonly ILogger _logger;

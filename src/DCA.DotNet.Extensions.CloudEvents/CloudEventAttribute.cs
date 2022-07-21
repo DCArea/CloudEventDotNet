@@ -9,7 +9,7 @@ public class CloudEventAttribute : Attribute
     public string? Topic { get; init; }
 }
 
-public record CloudEventMetadata(
+public record struct CloudEventMetadata(
     string PubSubName,
     string Topic,
     string Type,
