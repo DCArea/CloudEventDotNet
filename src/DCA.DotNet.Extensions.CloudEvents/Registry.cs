@@ -9,7 +9,8 @@ internal delegate Task HandleCloudEventDelegate(IServiceProvider serviceProvider
 public sealed class Registry
 {
     private readonly Dictionary<Type, CloudEventMetadata> _metadata = new();
-    private readonly Dictionary<CloudEventMetadata, HandleCloudEventDelegate> _handlers = new();
+    private readonly Dictionary<CloudEventMetadata, HandleCloudEventDelegate> _handlerDelegates = new();
+    private readonly Dictionary<CloudEventMetadata, CloudEventHandler> _handlers = new();
     private readonly string _defaultPubSubName;
     private readonly string _defaultTopic;
     private readonly string _defaultSource;
@@ -19,6 +20,16 @@ public sealed class Registry
         _defaultPubSubName = defaultPubSubName;
         _defaultTopic = defaultTopic;
         _defaultSource = defaultSource;
+    }
+
+    internal Registry Build(IServiceProvider services)
+    {
+        foreach (var (metadata, handlerDelegate) in _handlerDelegates)
+        {
+            var handler = ActivatorUtilities.CreateInstance<CloudEventHandler>(services, metadata, handlerDelegate);
+            _handlers.TryAdd(metadata, handler);
+        }
+        return this;
     }
 
     internal void RegisterMetadata(Type eventDataType, CloudEventAttribute attribute)
@@ -37,19 +48,14 @@ public sealed class Registry
         return _metadata[eventDataType];
     }
 
-    internal bool TryGetHandler(CloudEventMetadata metadata, [NotNullWhen(true)] out HandleCloudEventDelegate? handler)
+    internal bool TryGetHandler(CloudEventMetadata metadata, [NotNullWhen(true)] out CloudEventHandler? handler)
     {
         return _handlers.TryGetValue(metadata, out handler);
     }
 
-    internal HandleCloudEventDelegate GetHandler(CloudEventMetadata metadata)
-    {
-        return _handlers[metadata];
-    }
-
     internal void RegisterHandler<TData>(CloudEventMetadata metadata)
     {
-        _handlers.TryAdd(metadata, Handle);
+        _handlerDelegates.TryAdd(metadata, Handle);
 
         static Task Handle(IServiceProvider serviceProvider, CloudEvent @event, CancellationToken token)
         {

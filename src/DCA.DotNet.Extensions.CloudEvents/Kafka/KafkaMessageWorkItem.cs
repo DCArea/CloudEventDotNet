@@ -1,37 +1,29 @@
 using System.Text.Json;
 using Confluent.Kafka;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Kafka;
 
-internal class KafkaMessageWorkItem : IThreadPoolWorkItem
+internal sealed class KafkaMessageWorkItem : IThreadPoolWorkItem
 {
-    private readonly ConsumerContext _consumer;
-    private readonly ConsumeResult<Ignore, byte[]> _message;
-    private readonly KafkaWorkItemLifetime _lifetime;
-    private readonly Registry _registry;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger _logger;
+    private readonly KafkaMessageChannelContext _channelContext;
+    private readonly KafkaWorkItemContext _context;
+    private readonly KafkaMessageChannelTelemetry _telemetry;
+    private readonly ConsumeResult<byte[], byte[]> _message;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     internal KafkaMessageWorkItem(
-        ConsumerContext consumer,
-        ConsumeResult<Ignore, byte[]> message,
-        KafkaWorkItemLifetime lifetime,
-        Registry registry,
-        IServiceScopeFactory scopeFactory,
-        ILogger logger)
+        KafkaMessageChannelContext channelContext,
+        KafkaWorkItemContext context,
+        KafkaMessageChannelTelemetry telemetry,
+        ConsumeResult<byte[], byte[]> message)
     {
-        _consumer = consumer;
+        _channelContext = channelContext;
+        _context = context;
+        _telemetry = telemetry;
         _message = message;
-        _lifetime = lifetime;
-        _registry = registry;
-        _scopeFactory = scopeFactory;
-        _logger = logger;
     }
 
-    public TopicPartition TopicPartition => _message.TopicPartition;
     public TopicPartitionOffset TopicPartitionOffset => _message.TopicPartitionOffset;
 
     public bool Started => _started == 1;
@@ -60,31 +52,27 @@ internal class KafkaMessageWorkItem : IThreadPoolWorkItem
         try
         {
             var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(_message.Message.Value)!;
-            var metadata = new CloudEventMetadata(_consumer.PubSubName, _message.Topic, cloudEvent.Type, cloudEvent.Source);
-            using var activity = CloudEventInstruments.OnProcess(metadata, cloudEvent);
-            if (_registry.TryGetHandler(metadata, out var handler))
+            var metadata = new CloudEventMetadata(_channelContext.PubSubName, _message.Topic, cloudEvent.Type, cloudEvent.Source);
+            if (!_context.Registry.TryGetHandler(metadata, out var handler))
             {
-                using var scope = _scopeFactory.CreateScope();
-                await handler
-                    .Invoke(scope.ServiceProvider, cloudEvent!, _cancellationTokenSource.Token)
-                    .ConfigureAwait(false);
-                CloudEventInstruments.OnCloudEventProcessed(metadata, DateTimeOffset.UtcNow.Subtract(cloudEvent.Time));
-                KafkaInstruments.OnConsumed(activity, _consumer);
+                CloudEventProcessingTelemetry.OnHandlerNotFound(_telemetry.Logger, metadata);
+                return;
             }
-            else
+            bool succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token).ConfigureAwait(false);
+            KafkaInstruments.OnConsumed(_channelContext.ConsumerName, _channelContext.ConsumerGroup);
+
+            if (!succeed)
             {
-                _logger.LogWarning("No handler found for {Metadata}", metadata);
+                await _context.Producer.ReproduceAsync(_message).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling Kafka message");
+            _telemetry.Logger.LogError(ex, "Error handling Kafka message");
         }
         finally
         {
             _waiter.SetResult();
-            var vt = _lifetime.OnFinished(this);
-            if (!vt.IsCompletedSuccessfully) await vt;
         }
     }
 }

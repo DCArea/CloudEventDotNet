@@ -1,6 +1,7 @@
 using DCA.DotNet.Extensions.CloudEvents.Diagnostics.Aggregators;
 using DCA.DotNet.Extensions.CloudEvents.Redis.Instruments;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Redis;
 
@@ -26,10 +27,10 @@ internal sealed partial class RedisMessageTelemetry
     private readonly CounterAggregator _ackCounter;
 
     public RedisMessageTelemetry(
-        ILogger logger,
+        ILoggerFactory loggerFactory,
         RedisMessageChannelContext channelContext)
     {
-        _logger = logger;
+        _logger = loggerFactory.CreateLogger($"{nameof(RedisMessageTelemetry)}:{channelContext.PubSubName}:{channelContext.Topic}");
         var tagList = new TagList("pubsub", channelContext.PubSubName, "topic", channelContext.Topic);
         _fetchCounter = s_newMessageFetchedCounterGroup.FindOrCreate(tagList);
         _claimCounter = s_messageClaimedCounterGroup.FindOrCreate(tagList);
@@ -48,6 +49,12 @@ internal sealed partial class RedisMessageTelemetry
         Message = "Stopped fetch new messages loop"
     )]
     public partial void OnFetchNewMessagesLoopStopped();
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Error in fetch new messages loop"
+    )]
+    public partial void OnFetchNewMessagesLoopError(Exception exception);
 
     // ..
 
@@ -102,6 +109,12 @@ internal sealed partial class RedisMessageTelemetry
     public partial void OnClaimMessagesLoopStopped();
 
     [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Error in claim messages loop"
+    )]
+    public partial void OnClaimMessagesLoopError(Exception exception);
+
+    [LoggerMessage(
         Level = LogLevel.Debug,
         Message = "Fetched {count} pending messages"
     )]
@@ -113,11 +126,17 @@ internal sealed partial class RedisMessageTelemetry
     )]
     public partial void OnNoMessagesToClaim();
 
+    // [LoggerMessage(
+    //     Level = LogLevel.Debug,
+    //     Message = "No timeouted messages to claim, max idle: {maxIdle}ms, waiting for next loop"
+    // )]
+    // public partial void OnNoTimeoutedMessagesToClaim(long maxIdle);
+
     [LoggerMessage(
         Level = LogLevel.Debug,
-        Message = "No timeouted messages to claim, max idle: {maxIdle}ms, waiting for next loop"
+        Message = "No timeouted messages to claim, waiting for next loop, earliest: id: {id}, idle {idle}ms , dc {dc}"
     )]
-    public partial void OnNoTimeoutedMessagesToClaim(long maxIdle);
+    public partial void OnNoTimeoutedMessagesToClaim(string id, long idle, int dc);
 
     [LoggerMessage(
         Level = LogLevel.Debug,
@@ -148,5 +167,52 @@ internal sealed partial class RedisMessageTelemetry
         Message = "Failed to process message {id}"
     )]
     public partial void OnProcessMessageFailed(string id, Exception exception);
+
+    // reader
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Polling started")]
+    public partial void OnMessageChannelReaderStarted();
+
+    [LoggerMessage(
+        Level = LogLevel.Trace,
+        Message = "Work item not started, starting it")]
+    public partial void OnWorkItemStarting();
+
+    [LoggerMessage(
+        Level = LogLevel.Trace,
+        Message = "Work item started")]
+    public partial void OnWorkItemStarted();
+
+    [LoggerMessage(
+        Level = LogLevel.Trace,
+        Message = "Work item not completed, waiting")]
+    public partial void OnWaitingWorkItemComplete();
+
+    [LoggerMessage(
+        Level = LogLevel.Trace,
+        Message = "Work item completed")]
+    public partial void OnWorkItemCompleted();
+
+    [LoggerMessage(
+        Level = LogLevel.Trace,
+        Message = "Reader cancelled")]
+    public partial void MessageChannelReaderCancelled();
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Reader stopped")]
+    public partial void MessageChannelReaderStopped();
+
+    [LoggerMessage(
+        Level = LogLevel.Trace,
+        Message = "Waiting for next work item")]
+    public partial void WaitingForNextWorkItem();
+
+    [LoggerMessage(
+        EventId = 10700,
+        Level = LogLevel.Error,
+        Message = "Exception on polling")]
+    public partial void ExceptionOnReadingWorkItems(Exception exception);
 
 }

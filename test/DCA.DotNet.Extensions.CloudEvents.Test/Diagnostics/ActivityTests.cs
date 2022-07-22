@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using DCA.DotNet.Extensions.CloudEvents.Diagnostics;
 using DCA.DotNet.Extensions.CloudEvents.TestEvents;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Test.Diagnostics;
 public class ActivityTests
@@ -47,7 +48,7 @@ public class ActivityTests
         );
         var metadata = new CloudEventMetadata("testpubsub", "testtopic", sourceEvent!.Type, sourceEvent.Source);
 
-        var publishActivity = CloudEventInstruments.OnCloudEventPublishing(metadata, sourceEvent);
+        var publishActivity = CloudEventPublishTelemetry.OnCloudEventPublishing(metadata, sourceEvent);
         Assert.NotNull(publishActivity);
         Assert.Equal(publishActivity!.Id?.ToString(), sourceEvent.Extensions["traceparent"]?.ToString());
         Assert.Equal(publishActivity.TraceStateString?.ToString(), sourceEvent.Extensions["tracestate"]?.ToString());
@@ -60,7 +61,8 @@ public class ActivityTests
         Assert.Equal(publishActivity!.Id?.ToString(), cloudEvent!.Extensions["traceparent"].GetString());
         Assert.Equal(publishActivity.TraceStateString?.ToString(), cloudEvent.Extensions["tracestate"].GetString());
 
-        var processActivity = CloudEventInstruments.OnProcess(metadata, cloudEvent);
+        var processTelemetry = new CloudEventProcessingTelemetry(NullLoggerFactory.Instance, metadata);
+        var processActivity = processTelemetry.OnProcessing(cloudEvent);
         Assert.NotNull(processActivity);
 
         Assert.Equal(publishActivity!.Id?.ToString(), processActivity!.ParentId);
@@ -86,7 +88,8 @@ public class ActivityTests
         var json = JsonSerializer.Serialize(sourceEvent);
         var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(json);
         var metadata = new CloudEventMetadata("testpubsub", "testtopic", cloudEvent!.Type, cloudEvent.Source);
-        var processActivity = CloudEventInstruments.OnProcess(metadata, cloudEvent);
+        var processTelemetry = new CloudEventProcessingTelemetry(NullLoggerFactory.Instance, metadata);
+        var processActivity = processTelemetry.OnProcessing(cloudEvent);
         Assert.NotNull(processActivity);
     }
 }

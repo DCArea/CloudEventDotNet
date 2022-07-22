@@ -22,7 +22,7 @@ public static class KafkaPubSubBuilderExtensions
                 {
                     var optionsFactory = sp.GetRequiredService<IOptionsFactory<KafkaPublishOptions>>();
                     var options = optionsFactory.Create(name);
-                    return ActivatorUtilities.CreateInstance<KafkaCloudEventPublisher>(sp, options);
+                    return ActivatorUtilities.CreateInstance<KafkaCloudEventPublisher>(sp, name, options);
                 }
                 options.PublisherFactoris[name] = factory;
             });

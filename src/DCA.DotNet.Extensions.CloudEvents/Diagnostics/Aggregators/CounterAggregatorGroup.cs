@@ -17,7 +17,7 @@ public sealed class CounterAggregatorGroup
         Instrument = meter.CreateObservableCounter(name, Collect, unit, description);
     }
 
-    public CounterAggregator FindOrCreate(TagList tagList)
+    public CounterAggregator FindOrCreate(in TagList tagList)
     {
         if (Aggregators.TryGetValue(tagList, out var stat))
         {

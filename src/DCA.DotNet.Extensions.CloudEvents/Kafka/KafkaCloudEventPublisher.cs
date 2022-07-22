@@ -1,39 +1,35 @@
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Confluent.Kafka;
+using DCA.DotNet.Extensions.CloudEvents.Kafka;
 using Microsoft.Extensions.Logging;
 
 namespace DCA.DotNet.Extensions.CloudEvents;
 
 internal class KafkaCloudEventPublisher : ICloudEventPublisher
 {
-    private readonly IProducer<string, byte[]> _producer;
-    private readonly ILogger<KafkaCloudEventPublisher> _logger;
+    private readonly IProducer<byte[], byte[]> _producer;
+    private readonly KafkaProducerTelemetry _telemetry;
 
     public KafkaCloudEventPublisher(
+        string pubSubName,
         KafkaPublishOptions options,
-        ILogger<KafkaCloudEventPublisher> logger)
+        ILoggerFactory loggerFactory)
     {
-        _producer = new ProducerBuilder<string, byte[]>(options.ProducerConfig)
+        _telemetry = new KafkaProducerTelemetry(pubSubName, loggerFactory);
+        _producer = new ProducerBuilder<byte[], byte[]>(options.ProducerConfig)
+            .SetErrorHandler((_, e) => _telemetry.OnProducerError(e))
+            .SetLogHandler((_, log) => _telemetry.OnProducerLog(log))
             .Build();
-        _logger = logger;
     }
 
     public async Task PublishAsync<TData>(string topic, CloudEvent<TData> cloudEvent)
     {
-        var message = new Message<string, byte[]>
+        var message = new Message<byte[], byte[]>
         {
             Value = JsonSerializer.SerializeToUtf8Bytes(cloudEvent)
         };
 
-        DeliveryResult<string, byte[]> result = await _producer.ProduceAsync(topic, message).ConfigureAwait(false);
-        var activity = Activity.Current;
-        if (activity is not null)
-        {
-            // activity.SetTag("messaging.kafka.message_key", message.Key);
-            activity.SetTag("messaging.kafka.client_id", _producer.Name);
-            activity.SetTag("messaging.kafka.partition", result.Partition.Value);
-        }
+        DeliveryResult<byte[], byte[]> result = await _producer.ProduceAsync(topic, message).ConfigureAwait(false);
+        _telemetry.OnMessageProduced(result, _producer.Name);
     }
 }

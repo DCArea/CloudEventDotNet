@@ -39,7 +39,7 @@ public static class RedisPubSubBuilderExtensions
                 }
                 options.SubscriberFactoris[name] = factory;
             });
-            services.AddSingleton<RedisProcessChannelFactory>();
+            services.AddSingleton<RedisMessageChannelFactory>();
         }
 
         return builder;

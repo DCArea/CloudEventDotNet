@@ -23,9 +23,9 @@ public class RedisSubscribeOptions : RedisPubSubOptions
 
     public int PollBatchSize { get; set; } = 100;
 
-    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(10);
+    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(15);
 
-    public int RunningWorkItemLimit { get; set; } = -1;
+    public int RunningWorkItemLimit { get; set; } = 128;
 
-    public TimeSpan ProcessingTimeout { get; set; } = TimeSpan.FromSeconds(30);
+    public TimeSpan ProcessingTimeout { get; set; } = TimeSpan.FromSeconds(60);
 }

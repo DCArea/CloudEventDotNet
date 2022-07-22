@@ -76,7 +76,7 @@ public class PubSubBuilder
                 Services.AddScoped(handlerInterface, type);
             }
         }
-        Services.AddSingleton(registry);
+        Services.AddSingleton((sp) => registry.Build(sp));
         // registry.Debug();
         return this;
     }

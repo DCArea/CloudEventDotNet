@@ -35,9 +35,9 @@ internal class CloudEventPubSub : ICloudEventPubSub
             DataSchema: null,
             Subject: null
         );
-        using var activity = CloudEventInstruments.OnCloudEventPublishing(metadata, cloudEvent);
+        using var activity = CloudEventPublishTelemetry.OnCloudEventPublishing(metadata, cloudEvent);
         var publisher = _publishers[metadata.PubSubName];
         await publisher.PublishAsync(metadata.Topic, cloudEvent).ConfigureAwait(false);
-        CloudEventInstruments.OnCloudEventPublished(metadata);
+        CloudEventPublishTelemetry.OnCloudEventPublished(metadata);
     }
 }

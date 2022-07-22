@@ -1,5 +1,3 @@
-
-
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -7,14 +5,14 @@ using StackExchange.Redis;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Redis;
 
-internal class RedisProcessChannelFactory
+internal class RedisMessageChannelFactory
 {
     private readonly IOptionsFactory<RedisSubscribeOptions> _optionsFactory;
     private readonly Registry _registry;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILoggerFactory _loggerFactory;
 
-    public RedisProcessChannelFactory(
+    public RedisMessageChannelFactory(
         IOptionsFactory<RedisSubscribeOptions> optionsFactory,
         Registry registry,
         IServiceScopeFactory scopeFactory,
@@ -26,7 +24,7 @@ internal class RedisProcessChannelFactory
         _loggerFactory = loggerFactory;
     }
 
-    public RedisCloudEventTopicSubscriber[] Create(string pubSubName)
+    public RedisMessageChannel[] Create(string pubSubName)
     {
         var options = _optionsFactory.Create(pubSubName);
         var multiplexer = options.ConnectionMultiplexerFactory();
@@ -36,7 +34,7 @@ internal class RedisProcessChannelFactory
             .Select(topic => Create(pubSubName, topic, options, redis)).ToArray();
     }
 
-    private RedisCloudEventTopicSubscriber Create(
+    private RedisMessageChannel Create(
         string pubSubName,
         string topic,
         RedisSubscribeOptions options,
@@ -49,22 +47,20 @@ internal class RedisProcessChannelFactory
             options.ConsumerGroup,
             topic
         );
-        var redisTelemetry = new RedisMessageTelemetry(logger, channelContext);
+        var redisTelemetry = new RedisMessageTelemetry(_loggerFactory, channelContext);
         var workItemContext = new RedisWorkItemContext(
-                _registry,
-                _scopeFactory,
-                logger,
-                redis,
-                redisTelemetry
+            _registry,
+            _scopeFactory,
+            redis,
+            redisTelemetry
         );
-        var channel = new RedisMessageChannel(_loggerFactory, channelContext, options.RunningWorkItemLimit);
-        return new RedisCloudEventTopicSubscriber(
+        var channel = new RedisMessageChannel(
             options,
             redis,
             channelContext,
-            channel,
-            workItemContext
-        );
+            workItemContext,
+            redisTelemetry);
+        return channel;
     }
 
 }

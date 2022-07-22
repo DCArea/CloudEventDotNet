@@ -6,16 +6,15 @@ namespace DCA.DotNet.Extensions.CloudEvents.Kafka;
 
 internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
 {
-    private readonly IConsumer<Ignore, byte[]> _consumer;
-    private readonly ConsumerContext _consumerContext;
-    private readonly Registry _registry;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IConsumer<byte[], byte[]> _consumer;
+    private readonly KafkaWorkItemContext _workItemContext;
+    private readonly string[] _topics;
+    private readonly KafkaConsumerTelemetry _telemetry;
     private readonly string _pubSubName;
     private readonly KafkaSubscribeOptions _options;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly ILogger<KafkaAtLeastOnceConsumer> _logger;
-    private readonly KafkaAtLeastOnceWorkItemManager _manager;
-
+    private readonly Dictionary<TopicPartition, KafkaMessageChannel> _channels = new();
+    private readonly CancellationTokenSource _stopTokenSource = new();
     public KafkaAtLeastOnceConsumer(
         string pubSubName,
         KafkaSubscribeOptions options,
@@ -23,91 +22,157 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
         IServiceScopeFactory scopeFactory,
         ILoggerFactory loggerFactory)
     {
-        _registry = registry;
-        _scopeFactory = scopeFactory;
         _pubSubName = pubSubName;
         _options = options;
         _loggerFactory = loggerFactory;
-        _logger = _loggerFactory.CreateLogger<KafkaAtLeastOnceConsumer>();
-        _manager = new KafkaAtLeastOnceWorkItemManager(_loggerFactory, _options);
+        _telemetry = new KafkaConsumerTelemetry(pubSubName, loggerFactory);
+
         _options.ConsumerConfig.EnableAutoCommit = false;
-        _consumer = new ConsumerBuilder<Ignore, byte[]>(_options.ConsumerConfig)
-            .SetErrorHandler((_, e) =>
-            {
-                _logger.LogError("Error consuming message: {Error}", e);
-            })
+        _consumer = new ConsumerBuilder<byte[], byte[]>(_options.ConsumerConfig)
+            .SetErrorHandler((_, e) => _telemetry.OnConsumerError(e))
             .SetPartitionsAssignedHandler((c, partitions) =>
             {
-                _logger.LogInformation("Assigned partitions: {Partitions}", partitions);
-                _manager.Update(partitions);
+                _telemetry.OnPartitionsAssigned(partitions);
+                UpdateChannels(partitions);
             })
-            .SetPartitionsLostHandler((c, partitions) =>
-            {
-                _logger.LogInformation("Lost partitions: {Partitions}", partitions);
-            })
-            .SetPartitionsRevokedHandler((c, partitions) =>
-            {
-                _logger.LogInformation("Revoked partitions: {Partitions}", partitions);
-            })
-            .SetLogHandler((_, log) =>
-            {
-                _logger.LogInformation("Log: {Log}", log);
-            })
+            .SetPartitionsLostHandler((c, partitions) => _telemetry.OnPartitionsLost(partitions))
+            .SetPartitionsRevokedHandler((c, partitions) => _telemetry.OnPartitionsRevoked(partitions))
+            .SetLogHandler((_, log) => _telemetry.OnConsumerLog(log))
             .Build();
-        _consumerContext = new ConsumerContext(pubSubName, _consumer.Name, _options.ConsumerConfig.GroupId);
+
+        _workItemContext = new KafkaWorkItemContext(registry, new(options, _telemetry));
+        _topics = registry.GetTopics(pubSubName).ToArray();
     }
 
-    public void Subscribe(CancellationToken token)
+    private Task _consumeLoop = default!;
+    private Task _commitLoop = default!;
+    public Task StartAsync()
     {
-        var topics = _registry.GetTopics(_pubSubName);
-        _consumer.Subscribe(topics);
-        _logger.LogInformation("Consumer {name} subscribed to topics: {Topics}", _consumer.Name, topics);
+        _consumer.Subscribe(_topics);
+        _consumeLoop = Task.Factory.StartNew(ConsumeLoop, TaskCreationOptions.LongRunning);
+        _commitLoop = Task.Run(CommitLoop);
+        return Task.CompletedTask;
+    }
 
-        var commitTimer = new Timer(_ => CommitOffsets(), null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
-
-        while (!token.IsCancellationRequested)
-        {
-            try
-            {
-                ConsumeResult<Ignore, byte[]> consumeResult = _consumer.Consume(10000);
-                if (consumeResult == null)
-                {
-                    continue;
-                }
-                _logger.LogDebug("Consumed message: {offset}", consumeResult.TopicPartitionOffset);
-                var workItem = new KafkaMessageWorkItem(
-                    _consumerContext,
-                    consumeResult,
-                    _manager,
-                    _registry,
-                    _scopeFactory,
-                    _logger);
-                var vt = _manager.OnReceived(workItem);
-                if (!vt.IsCompletedSuccessfully)
-                {
-                    vt.ConfigureAwait(false).GetAwaiter().GetResult();
-                }
-                ThreadPool.UnsafeQueueUserWorkItem(workItem, preferLocal: false);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error consuming message");
-            }
-        }
-
-        _logger.LogInformation("Stoping consumer", _consumer.Name);
+    public async Task StopAsync()
+    {
         _consumer.Unsubscribe();
-        _manager.StopAsync().GetAwaiter().GetResult();
-        _logger.LogInformation("Finished processing inflighting workitems");
-        commitTimer.Dispose();
+        _stopTokenSource.Cancel();
+        await _consumeLoop;
+        await _commitLoop;
+        await Task.WhenAll(_channels.Values.Select(ch => ch.StopAsync()));
         CommitOffsets();
         _consumer.Close();
     }
 
-    private void CommitOffsets()
+    private void ConsumeLoop()
     {
-        var offsets = _manager.GetOffsets().Select(offset => new TopicPartitionOffset(offset.TopicPartition, offset.Offset + 1));
-        _consumer.Commit(offsets);
-        _logger.LogDebug("Committed offsets: {Offsets}", offsets);
+        _telemetry.OnConsumeLoopStarted();
+        while (!_stopTokenSource.Token.IsCancellationRequested)
+        {
+            try
+            {
+                ConsumeResult<byte[], byte[]> consumeResult = _consumer.Consume(10000);
+                if (consumeResult == null)
+                {
+                    continue;
+                }
+                _telemetry.OnMessageFetched(consumeResult.TopicPartitionOffset);
+
+                var channel = _channels[consumeResult.TopicPartition];
+                var vt = channel.WriteAsync(consumeResult);
+                if (!vt.IsCompletedSuccessfully)
+                {
+                    vt.ConfigureAwait(false).GetAwaiter().GetResult();
+                }
+            }
+            catch (Exception e)
+            {
+                _telemetry.OnConsumeFailed(e);
+            }
+        }
+        _telemetry.OnConsumeLoopStopped();
+    }
+
+    private void UpdateChannels(List<TopicPartition> topicPartitions)
+    {
+        foreach (var topicPartition in topicPartitions)
+        {
+            if (!_channels.TryGetValue(topicPartition, out var _))
+            {
+                _channels[topicPartition] = StartChannel(topicPartition);
+            }
+        }
+
+        var channelsToStopped = new List<KafkaMessageChannel>();
+        foreach (var (tp, channel) in _channels.Where(kvp => !topicPartitions.Contains(kvp.Key)))
+        {
+            _channels.Remove(tp);
+            channelsToStopped.Add(channel);
+        }
+
+        // wait all pending messages checked
+        Task.WhenAll(channelsToStopped.Select(ch => ch.StopAsync())).GetAwaiter().GetResult();
+        CommitOffsets(channelsToStopped);
+
+        KafkaMessageChannel StartChannel(TopicPartition tp)
+        {
+            var channelContext = new KafkaMessageChannelContext(
+                _pubSubName,
+                _consumer.Name,
+                _options.ConsumerConfig.GroupId,
+                tp
+            );
+            var telemetry = new KafkaMessageChannelTelemetry(
+                _loggerFactory,
+                channelContext
+            );
+            return new KafkaMessageChannel(
+                _options,
+                channelContext,
+                _workItemContext,
+                telemetry
+            );
+        }
+    }
+
+    private async Task CommitLoop()
+    {
+        _telemetry.OnCommitLoopStarted();
+        while (!_stopTokenSource.Token.IsCancellationRequested)
+        {
+            try
+            {
+                CommitOffsets();
+                await Task.Delay(TimeSpan.FromSeconds(10), _stopTokenSource.Token).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException) { break; }
+            catch (Exception ex)
+            {
+                _telemetry.OnCommitLoopError(ex);
+            }
+        }
+        _telemetry.OnCommitLoopStopped();
+    }
+
+    private void CommitOffsets() => CommitOffsets(_channels.Values);
+
+    private void CommitOffsets(IEnumerable<KafkaMessageChannel> channels)
+    {
+        try
+        {
+            var offsets = channels
+                .Where(ch => ch.Reader.Offset != null)
+                .Select(ch => ch.Reader.Offset)
+                .Select(offset => new TopicPartitionOffset(offset!.TopicPartition, offset.Offset + 1))
+                .ToArray();
+            _consumer.Commit(offsets);
+            _telemetry.OnOffsetsCommited(offsets);
+        }
+        catch (Exception ex)
+        {
+            _telemetry.Logger.LogError(ex, "Error on commit offsets");
+            throw;
+        }
     }
 }

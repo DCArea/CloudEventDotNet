@@ -53,34 +53,16 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
             {
                 return;
             }
-
-            bool succeed = false;
-            using var activity = CloudEventInstruments.OnProcess(metadata, cloudEvent);
-            using (var scope = _context.ScopeFactory.CreateScope())
-            {
-                try
-                {
-                    await handler
-                        .Invoke(scope.ServiceProvider, cloudEvent!, _cancellationTokenSource.Token)
-                        .ConfigureAwait(false);
-                    CloudEventInstruments.OnCloudEventProcessed(metadata, DateTimeOffset.UtcNow.Subtract(cloudEvent.Time));
-                    succeed = true;
-                }
-                catch (Exception ex)
-                {
-                    CloudEventInstruments.OnProcessingCloudEventFailed(_context.Logger, ex, metadata.Type, cloudEvent.Id);
-                    throw;
-                }
-            }
+            bool succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token).ConfigureAwait(false);
             if (succeed)
             {
                 await _context.Redis.StreamAcknowledgeAsync(
                     ChannelContext.Topic,
                     ChannelContext.ConsumerGroup,
-                    Message.Id);
+                    Message.Id).ConfigureAwait(false);
                 _context.RedisTelemetry.OnMessageAcknowledged(Message.Id.ToString());
             }
-            RedisTelemetry.OnMessageProcessed(activity, ChannelContext.ConsumerGroup, ChannelContext.ConsumerName);
+            RedisTelemetry.OnMessageProcessed(ChannelContext.ConsumerGroup, ChannelContext.ConsumerName);
         }
         catch (Exception ex)
         {

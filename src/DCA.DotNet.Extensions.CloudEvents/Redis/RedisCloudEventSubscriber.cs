@@ -5,36 +5,30 @@ namespace DCA.DotNet.Extensions.CloudEvents.Redis;
 
 internal class RedisCloudEventSubscriber : ICloudEventSubscriber
 {
+    private readonly string _pubSubName;
     private readonly ILogger _logger;
-    private readonly RedisCloudEventTopicSubscriber[] _subscribers;
+    private readonly RedisMessageChannelFactory _channelFactory;
+    private RedisMessageChannel[]? _subscribers;
 
     public RedisCloudEventSubscriber(
         string pubSubName,
         ILogger<RedisCloudEventSubscriber> logger,
-        RedisProcessChannelFactory channelFactory)
+        RedisMessageChannelFactory channelFactory)
     {
+        _pubSubName = pubSubName;
         _logger = logger;
-        _subscribers = channelFactory.Create(pubSubName);
+        _channelFactory = channelFactory;
     }
 
-    public void Subscribe(CancellationToken token)
+    public Task StartAsync()
     {
         RedisTelemetry.OnSubscriberStarting(_logger);
-        SubscribeAsync(token).GetAwaiter().GetResult();
+        _subscribers = _channelFactory.Create(_pubSubName);
+        return Task.CompletedTask;
     }
 
-    private async Task SubscribeAsync(CancellationToken token)
+    public async Task StopAsync()
     {
-        try
-        {
-            await Task.WhenAll(_subscribers.Select(s => s.SubscribeAsync(token)));
-            await Task.WhenAll(_subscribers.Select(s => s.Shutdown()));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in subscription loop");
-            throw;
-        }
+        await Task.WhenAll(_subscribers!.Select(s => s.StopAsync()));
     }
-
 }

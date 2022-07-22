@@ -7,7 +7,7 @@ using DCA.DotNet.Extensions.CloudEvents;
 string broker = Environment.GetEnvironmentVariable("KAFKA_BROKER") ?? "localhost:9092";
 string topic = Environment.GetEnvironmentVariable("KAFKA_TOPIC") ?? "devperftest";
 string consumerGroup = Environment.GetEnvironmentVariable("KAFKA_CONSUMER_GROUP") ?? "devperftest";
-int runningWorkItemLimit = int.Parse(Environment.GetEnvironmentVariable("KAFKA_RUNNING_WORK_ITEM_LIMIT") ?? "1024");
+int runningWorkItemLimit = int.Parse(Environment.GetEnvironmentVariable("KAFKA_RUNNING_WORK_ITEM_LIMIT") ?? "128");
 var autoOffsetReset = Environment.GetEnvironmentVariable("KAFKA_AUTO_OFFSET_RESET") switch
 {
     "latest" => AutoOffsetReset.Latest,
@@ -25,7 +25,8 @@ var services = new ServiceCollection()
 // .AddLogging();
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
 // .AddLogging(logging => logging.AddConsole().AddFilter((category, level) => category.Contains("TopicPartitionChannel")));
-.AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Debug));
+// .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Debug));
+.AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Trace));
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Warning));
 services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: topic)
     .Load(typeof(Ping).Assembly)
