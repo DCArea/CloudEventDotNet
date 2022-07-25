@@ -1,7 +1,7 @@
 
 using System.Diagnostics;
 using CloudEventRedisTester;
-using DCA.DotNet.Extensions.CloudEvents;
+using CloudEventDotNet;
 using StackExchange.Redis;
 
 string redisConnectionString = Environment.GetEnvironmentVariable("CONNSTR") ?? "localhost:6379";

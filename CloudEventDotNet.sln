@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "perf", "perf", "{E68F055F-B7CD-4709-A938-E6AA0F2C5823}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudEventKafkaTester", "perf\CloudEventKafkaTester\CloudEventKafkaTester.csproj", "{E9C4D754-6E0D-4976-8416-61A68C9A7365}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudEventRedisTester", "perf\CloudEventRedisTester\CloudEventRedisTester.csproj", "{6612BA4F-28B7-41A4-8A2F-19AFC959EA1E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{46081377-335F-4C1A-BEA6-C8EEA413512C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudEventDotNet", "src\CloudEventDotNet\CloudEventDotNet.csproj", "{EAEB3BBC-E680-4190-9907-B6F1D67ECC2A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{FD67BF13-67BD-4217-89ED-93C5E36C8039}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudEventDotNet.Test", "test\CloudEventDotNet.Test\CloudEventDotNet.Test.csproj", "{88966C51-9535-4F2C-9C58-025E28DFFC56}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E9C4D754-6E0D-4976-8416-61A68C9A7365}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9C4D754-6E0D-4976-8416-61A68C9A7365}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9C4D754-6E0D-4976-8416-61A68C9A7365}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9C4D754-6E0D-4976-8416-61A68C9A7365}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6612BA4F-28B7-41A4-8A2F-19AFC959EA1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6612BA4F-28B7-41A4-8A2F-19AFC959EA1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6612BA4F-28B7-41A4-8A2F-19AFC959EA1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6612BA4F-28B7-41A4-8A2F-19AFC959EA1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAEB3BBC-E680-4190-9907-B6F1D67ECC2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAEB3BBC-E680-4190-9907-B6F1D67ECC2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAEB3BBC-E680-4190-9907-B6F1D67ECC2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAEB3BBC-E680-4190-9907-B6F1D67ECC2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88966C51-9535-4F2C-9C58-025E28DFFC56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88966C51-9535-4F2C-9C58-025E28DFFC56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88966C51-9535-4F2C-9C58-025E28DFFC56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88966C51-9535-4F2C-9C58-025E28DFFC56}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E9C4D754-6E0D-4976-8416-61A68C9A7365} = {E68F055F-B7CD-4709-A938-E6AA0F2C5823}
+		{6612BA4F-28B7-41A4-8A2F-19AFC959EA1E} = {E68F055F-B7CD-4709-A938-E6AA0F2C5823}
+		{EAEB3BBC-E680-4190-9907-B6F1D67ECC2A} = {46081377-335F-4C1A-BEA6-C8EEA413512C}
+		{88966C51-9535-4F2C-9C58-025E28DFFC56} = {FD67BF13-67BD-4217-89ED-93C5E36C8039}
+	EndGlobalSection
+EndGlobal

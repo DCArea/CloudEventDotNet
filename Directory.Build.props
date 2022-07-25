@@ -1,0 +1,22 @@
+<Project>
+  <PropertyGroup>
+    <RepositoryRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))</RepositoryRoot>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DefaultTargetFramework>net6.0</DefaultTargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionSuffix>dev</VersionSuffix>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <DebugType>portable</DebugType>
+    <NoWarn>$(NoWarn),AD0001,CA1816,CS1591</NoWarn>
+  </PropertyGroup>
+
+</Project>

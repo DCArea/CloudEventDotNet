@@ -1,7 +1,7 @@
 
 
 using System.Diagnostics.Metrics;
-using DCA.DotNet.Extensions.CloudEvents;
+using CloudEventDotNet;
 
 namespace CloudEventKafkaTester;
 

@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using CloudEventKafkaTester;
 using Confluent.Kafka;
-using DCA.DotNet.Extensions.CloudEvents;
+using CloudEventDotNet;
 
 string broker = Environment.GetEnvironmentVariable("KAFKA_BROKER") ?? "localhost:9092";
 string topic = Environment.GetEnvironmentVariable("KAFKA_TOPIC") ?? "devperftest";

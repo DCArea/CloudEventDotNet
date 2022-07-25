@@ -2,12 +2,19 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
   <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IsPackable>true</IsPackable>
+    <PackageOutputPath>$([System.IO.Path]::Combine('$(RepositoryRoot)','pkgs'))</PackageOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);SYSLIB1006</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>
     <SourceLinkCreate>true</SourceLinkCreate>
-    <SourceLinkOriginUrl>https://github.com/DCArea/DCA.DotNet.Extensions</SourceLinkOriginUrl>
+    <SourceLinkOriginUrl>https://github.com/DCArea/CloudEventDotNet</SourceLinkOriginUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsPackable)'=='true' and '$(SourceLinkCreate)'=='true'">
@@ -18,7 +25,7 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup Condition="'$(IsPackable)'=='true' and '$(SourceLinkCreate)'=='true'">
-    <PackageReference Include="Microsoft.SourceLink.GitLab" Version="1.1.1" PrivateAssets="All"/>
+    <PackageReference Include="Microsoft.SourceLink.GitLab" PrivateAssets="All"/>
   </ItemGroup>
 
   <ItemGroup>
