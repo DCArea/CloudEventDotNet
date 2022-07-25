@@ -22,8 +22,8 @@ var deliveryGuarantee = Environment.GetEnvironmentVariable("KAFKA_DELIVERY_GUARA
 };
 
 var services = new ServiceCollection()
-.AddLogging();
-// .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
+// .AddLogging();
+.AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
 // .AddLogging(logging => logging.AddConsole().AddFilter((category, level) => category.Contains("TopicPartitionChannel")));
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Debug));
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Trace));
@@ -101,7 +101,8 @@ async Task Subscribe()
     await subscriber.StartAsync(default);
 
     var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-    await Monitor(timer);
+    _ = Task.Run(() => Monitor(timer));
+    Console.ReadKey();
     await subscriber.StopAsync(default);
 }
 

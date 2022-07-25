@@ -1,7 +1,7 @@
 
 using System.Diagnostics;
-using CloudEventRedisTester;
 using CloudEventDotNet;
+using CloudEventRedisTester;
 using StackExchange.Redis;
 
 string redisConnectionString = Environment.GetEnvironmentVariable("CONNSTR") ?? "localhost:6379";
@@ -79,7 +79,8 @@ async Task Subscribe()
     await subscriber.StartAsync(default);
 
     var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-    await Monitor(timer);
+    _ = Task.Run(() => Monitor(timer));
+    Console.ReadKey();
     await subscriber.StopAsync(default);
 }
 

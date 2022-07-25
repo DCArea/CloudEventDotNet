@@ -47,7 +47,11 @@ internal class KafkaMessageChannel
     }
 
     public bool IsActive { get; }
-    public Task StopAsync() => Reader.StopAsync();
+    public Task StopAsync()
+    {
+        _stopTokenSource.Cancel();
+        return Reader.StopAsync();
+    }
 
     public ChannelWriter<KafkaMessageWorkItem> Writer => _channel.Writer;
 
