@@ -47,10 +47,7 @@ internal class KafkaMessageChannel
     }
 
     public bool IsActive { get; }
-    public async Task StopAsync()
-    {
-        await Reader.StopAsync();
-    }
+    public Task StopAsync() => Reader.StopAsync();
 
     public ChannelWriter<KafkaMessageWorkItem> Writer => _channel.Writer;
 

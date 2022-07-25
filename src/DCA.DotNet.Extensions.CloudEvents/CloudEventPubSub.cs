@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 
 namespace DCA.DotNet.Extensions.CloudEvents;
 
-internal class CloudEventPubSub : ICloudEventPubSub
+internal sealed class CloudEventPubSub : ICloudEventPubSub
 {
     private readonly PubSubOptions _options;
     private readonly Dictionary<string, ICloudEventPublisher> _publishers;

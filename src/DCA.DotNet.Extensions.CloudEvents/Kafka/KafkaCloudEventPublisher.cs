@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DCA.DotNet.Extensions.CloudEvents;
 
-internal class KafkaCloudEventPublisher : ICloudEventPublisher
+internal sealed class KafkaCloudEventPublisher : ICloudEventPublisher
 {
     private readonly IProducer<byte[], byte[]> _producer;
     private readonly KafkaProducerTelemetry _telemetry;

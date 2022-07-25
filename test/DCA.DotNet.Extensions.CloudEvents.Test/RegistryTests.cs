@@ -8,14 +8,15 @@ public class RegistryTests
     [Fact]
     public void Load()
     {
-        var services = new ServiceCollection();
+        var services = new ServiceCollection()
+            .AddLogging();
         services.AddCloudEvents()
             .Load(typeof(SimpleEvent).Assembly);
         var sp = services.BuildServiceProvider();
 
         var registry = sp.GetRequiredService<Registry>();
         var metadata = registry.GetMetadata(typeof(SimpleEvent));
-        var handler = registry.GetHandler(metadata);
+        Assert.True(registry.TryGetHandler(metadata, out var handler));
     }
 
 }

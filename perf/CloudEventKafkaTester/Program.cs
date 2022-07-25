@@ -22,11 +22,11 @@ var deliveryGuarantee = Environment.GetEnvironmentVariable("KAFKA_DELIVERY_GUARA
 };
 
 var services = new ServiceCollection()
-// .AddLogging();
+.AddLogging();
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
 // .AddLogging(logging => logging.AddConsole().AddFilter((category, level) => category.Contains("TopicPartitionChannel")));
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Debug));
-.AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Trace));
+// .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Trace));
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Warning));
 services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: topic)
     .Load(typeof(Ping).Assembly)

@@ -56,7 +56,7 @@ internal sealed class KafkaAtMostOnceConsumer : ICloudEventSubscriber
     private Task _consumeLoop = default!;
     public Task StartAsync()
     {
-        _consumeLoop = ConsumeLoop();
+        _consumeLoop = Task.Factory.StartNew(ConsumeLoop, TaskCreationOptions.LongRunning);
         return Task.CompletedTask;
     }
 
@@ -69,14 +69,14 @@ internal sealed class KafkaAtMostOnceConsumer : ICloudEventSubscriber
         await _channel.StopAsync();
     }
 
-    private async Task ConsumeLoop()
+    private void ConsumeLoop()
     {
         _telemetry.OnConsumeLoopStarted();
         while (!_stopTokenSource.Token.IsCancellationRequested)
         {
             try
             {
-                ConsumeResult<byte[], byte[]> consumeResult = _consumer.Consume(10000);
+                ConsumeResult<byte[], byte[]> consumeResult = _consumer.Consume(_stopTokenSource.Token);
                 if (consumeResult == null)
                 {
                     continue;
@@ -85,7 +85,7 @@ internal sealed class KafkaAtMostOnceConsumer : ICloudEventSubscriber
                 var vt = _channel.WriteAsync(consumeResult);
                 if (!vt.IsCompletedSuccessfully)
                 {
-                    await vt.ConfigureAwait(false);
+                    vt.ConfigureAwait(false).GetAwaiter().GetResult();
                 }
             }
             catch (Exception e)

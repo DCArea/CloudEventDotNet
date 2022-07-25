@@ -3,7 +3,7 @@ using StackExchange.Redis;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Redis;
 
-internal class RedisMessageChannelWriter
+internal sealed class RedisMessageChannelWriter
 {
     private readonly RedisSubscribeOptions _options;
     private readonly IDatabase _database;
@@ -65,12 +65,12 @@ internal class RedisMessageChannelWriter
                     _channelContext.ConsumerGroup,
                     _channelContext.ConsumerGroup,
                     StreamPosition.NewMessages,
-                    _options.PollBatchSize);
+                    _options.PollBatchSize).ConfigureAwait(false);
 
                 if (messages.Length > 0)
                 {
                     _telemetry.OnMessagesFetched(messages.Length);
-                    await DispatchMessages(messages);
+                    await DispatchMessages(messages).ConfigureAwait(false);
                 }
                 else
                 {
@@ -95,7 +95,7 @@ internal class RedisMessageChannelWriter
             _telemetry.OnClaimMessagesLoopStarted();
             while (!_stopToken.IsCancellationRequested)
             {
-                await ClaimPendingMessages();
+                await ClaimPendingMessages().ConfigureAwait(false);
                 await Task.Delay(_options.PollInterval, default);
             }
             _telemetry.OnClaimMessagesLoopStopped();
@@ -108,7 +108,7 @@ internal class RedisMessageChannelWriter
                         _channelContext.Topic,
                         _channelContext.ConsumerGroup,
                         _options.PollBatchSize,
-                        RedisValue.Null);
+                        RedisValue.Null).ConfigureAwait(false);
                     _telemetry.OnPendingMessagesInformationFetched(pendingMessages.Length);
 
                     if (pendingMessages.Length == 0)
@@ -135,10 +135,10 @@ internal class RedisMessageChannelWriter
                         _channelContext.ConsumerGroup,
                         (long)_options.ProcessingTimeout.TotalMilliseconds,
                         messagesToClaim
-                    );
+                    ).ConfigureAwait(false);
 
                     _telemetry.OnMessagesClaimed(claimedMessages.Length);
-                    await DispatchMessages(claimedMessages);
+                    await DispatchMessages(claimedMessages).ConfigureAwait(false);
                 }
             }
         }
@@ -160,7 +160,7 @@ internal class RedisMessageChannelWriter
             );
             if (!_channelWriter.TryWrite(workItem))
             {
-                await _channelWriter.WriteAsync(workItem);
+                await _channelWriter.WriteAsync(workItem).ConfigureAwait(false);
             }
             ThreadPool.UnsafeQueueUserWorkItem(workItem, false);
             _telemetry.OnMessageDispatched(message.Id.ToString());

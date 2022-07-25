@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Kafka;
 
-internal partial class KafkaProducerTelemetry
+internal sealed partial class KafkaProducerTelemetry
 {
     private readonly ILogger _logger;
 

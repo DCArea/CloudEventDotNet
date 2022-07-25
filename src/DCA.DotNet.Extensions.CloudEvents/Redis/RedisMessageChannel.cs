@@ -4,7 +4,7 @@ using StackExchange.Redis;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Redis;
 
-internal partial class RedisMessageChannel
+internal sealed partial class RedisMessageChannel
 {
     private readonly Channel<RedisMessageWorkItem> _channel;
     private readonly RedisMessageTelemetry _telemetry;

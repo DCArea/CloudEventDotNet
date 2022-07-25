@@ -5,7 +5,7 @@ using StackExchange.Redis;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Redis;
 
-internal class RedisCloudEventPublisher : ICloudEventPublisher
+internal sealed class RedisCloudEventPublisher : ICloudEventPublisher
 {
     private readonly ILogger<RedisCloudEventPublisher> _logger;
     private readonly RedisPublishOptions _options;
@@ -24,7 +24,12 @@ internal class RedisCloudEventPublisher : ICloudEventPublisher
     public async Task PublishAsync<TData>(string topic, CloudEvent<TData> cloudEvent)
     {
         byte[] data = JsonSerializer.SerializeToUtf8Bytes(cloudEvent);
-        var id = await _database.StreamAddAsync(topic, "data", data, maxLength: _options.MaxLength, useApproximateMaxLength: true);
+        var id = await _database.StreamAddAsync(
+            topic,
+            "data",
+            data,
+            maxLength: _options.MaxLength,
+            useApproximateMaxLength: true).ConfigureAwait(false);
         RedisTelemetry.OnMessageProduced(_logger, _multiplexer, topic, id.ToString());
     }
 }

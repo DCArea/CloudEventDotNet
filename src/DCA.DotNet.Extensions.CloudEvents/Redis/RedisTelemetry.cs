@@ -1,7 +1,6 @@
 
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using DCA.DotNet.Extensions.CloudEvents.Diagnostics.Aggregators;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 

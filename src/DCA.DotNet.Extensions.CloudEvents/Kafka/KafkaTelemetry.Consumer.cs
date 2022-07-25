@@ -1,9 +1,10 @@
+using System.Diagnostics;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Kafka;
 
-internal partial class KafkaConsumerTelemetry
+internal sealed partial class KafkaConsumerTelemetry
 {
     private readonly ILogger _logger;
     public KafkaConsumerTelemetry(string pubSubName, ILoggerFactory loggerFactory)
@@ -138,4 +139,17 @@ internal partial class KafkaConsumerTelemetry
         Message = "Error in commit loop"
     )]
     public partial void OnCommitLoopError(Exception exception);
+
+    public static void OnConsumed(
+        string consumerName,
+        string consumerGroup)
+    {
+        var activity = Activity.Current;
+        if (activity is not null)
+        {
+            // activity.SetTag("messaging.kafka.message_key", message.Key);
+            activity.SetTag("messaging.kafka.client_id", consumerName);
+            activity.SetTag("messaging.kafka.consumer_group", consumerGroup);
+        }
+    }
 }

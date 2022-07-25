@@ -8,11 +8,12 @@ string redisConnectionString = Environment.GetEnvironmentVariable("CONNSTR") ?? 
 string topic = Environment.GetEnvironmentVariable("TOPIC") ?? "devperftest";
 string consumerGroup = Environment.GetEnvironmentVariable("CONSUMER_GROUP") ?? "devperftest";
 int runningWorkItemLimit = int.Parse(Environment.GetEnvironmentVariable("RUNNING_WORK_ITEM_LIMIT") ?? "1024");
+int maxLength = int.Parse(Environment.GetEnvironmentVariable("MAX_LENGTH") ?? (100_000_000).ToString());
 
 var services = new ServiceCollection()
 // .AddLogging();
-// .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
-.AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Debug));
+.AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
+// .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Debug));
 // .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Trace));
 
 var redis = ConnectionMultiplexer.Connect(redisConnectionString);
@@ -22,6 +23,7 @@ services.AddCloudEvents(defaultPubSubName: "redis", defaultTopic: topic)
     .AddRedisPubSub("redis", options =>
     {
         options.ConnectionMultiplexerFactory = () => redis;
+        options.MaxLength = maxLength;
     }, options =>
     {
         options.ConnectionMultiplexerFactory = () => redis;

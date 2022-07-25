@@ -2,7 +2,7 @@ using System.Threading.Channels;
 
 namespace DCA.DotNet.Extensions.CloudEvents.Redis;
 
-internal partial class RedisMessageChannelReader
+internal sealed partial class RedisMessageChannelReader
 {
     private readonly ChannelReader<RedisMessageWorkItem> _channelReader;
     private readonly CancellationToken _stopToken;
@@ -20,9 +20,9 @@ internal partial class RedisMessageChannelReader
         _readLoop = Task.Run(ReadLoop, default);
     }
 
-    public async Task StopAsync()
+    public Task StopAsync()
     {
-        await _readLoop;
+        return _readLoop;
     }
 
     private async Task ReadLoop()
@@ -44,7 +44,7 @@ internal partial class RedisMessageChannelReader
                     if (!vt.IsCompletedSuccessfully)
                     {
                         _telemetry.OnWaitingWorkItemComplete();
-                        await vt;
+                        await vt.ConfigureAwait(false);
                         _telemetry.OnWorkItemCompleted();
                     }
                 }
@@ -58,7 +58,7 @@ internal partial class RedisMessageChannelReader
                     else
                     {
                         _telemetry.WaitingForNextWorkItem();
-                        await _channelReader.WaitToReadAsync(_stopToken);
+                        await _channelReader.WaitToReadAsync(_stopToken).ConfigureAwait(false);
                     }
                 }
             }

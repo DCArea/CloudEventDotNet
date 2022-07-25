@@ -59,7 +59,7 @@ internal sealed class KafkaMessageWorkItem : IThreadPoolWorkItem
                 return;
             }
             bool succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token).ConfigureAwait(false);
-            KafkaInstruments.OnConsumed(_channelContext.ConsumerName, _channelContext.ConsumerGroup);
+            KafkaConsumerTelemetry.OnConsumed(_channelContext.ConsumerName, _channelContext.ConsumerGroup);
 
             if (!succeed)
             {

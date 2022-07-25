@@ -48,7 +48,7 @@ internal class KafkaMessageChannelReader
                     if (!vt.IsCompletedSuccessfully)
                     {
                         _telemetry.OnWaitingWorkItemComplete();
-                        await vt;
+                        await vt.ConfigureAwait(false);
                         _telemetry.OnWorkItemCompleted();
                     }
                     Offset = workItem.TopicPartitionOffset;
@@ -64,7 +64,7 @@ internal class KafkaMessageChannelReader
                     else
                     {
                         _telemetry.WaitingForNextWorkItem();
-                        await _channelReader.WaitToReadAsync(_stopToken);
+                        await _channelReader.WaitToReadAsync(_stopToken).ConfigureAwait(false);
                     }
                 }
             }
