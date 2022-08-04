@@ -9,7 +9,7 @@ internal sealed partial class KafkaConsumerTelemetry
     private readonly ILogger _logger;
     public KafkaConsumerTelemetry(string pubSubName, ILoggerFactory loggerFactory)
     {
-        _logger = loggerFactory.CreateLogger($"{nameof(KafkaConsumerTelemetry)}:{pubSubName}");
+        _logger = loggerFactory.CreateLogger($"{nameof(CloudEventDotNet)}.{nameof(KafkaConsumerTelemetry)}:{pubSubName}");
     }
     public ILogger Logger => _logger;
 

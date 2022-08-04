@@ -30,7 +30,7 @@ internal class RedisMessageChannelFactory
         var multiplexer = options.ConnectionMultiplexerFactory();
         var redis = multiplexer.GetDatabase(options.Database);
 
-        return _registry.GetTopics(pubSubName)
+        return _registry.GetSubscribedTopics(pubSubName)
             .Select(topic => Create(pubSubName, topic, options, redis)).ToArray();
     }
 

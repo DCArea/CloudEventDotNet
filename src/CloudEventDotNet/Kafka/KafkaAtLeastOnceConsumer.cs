@@ -40,7 +40,8 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
             .Build();
 
         _workItemContext = new KafkaWorkItemContext(registry, new(options, _telemetry));
-        _topics = registry.GetTopics(pubSubName).ToArray();
+        _topics = registry.GetSubscribedTopics(pubSubName).ToArray();
+        _telemetry.Logger.LogDebug("KafkaAtLeastOnceConsumer created");
     }
 
     private Task _consumeLoop = default!;

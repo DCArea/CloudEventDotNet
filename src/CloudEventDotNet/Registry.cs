@@ -74,11 +74,12 @@ public sealed class Registry
         }
     }
 
-    public IEnumerable<string> GetTopics(string pubSubName)
+    public IEnumerable<string> GetSubscribedTopics(string pubSubName)
     {
-        return _metadata.Values
+        return _handlers.Keys
             .Where(m => m.PubSubName == pubSubName)
-            .Select(m => m.Topic);
+            .Select(m => m.Topic)
+            .Distinct();
     }
 
     public string Debug()

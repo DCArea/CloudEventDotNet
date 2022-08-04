@@ -35,7 +35,7 @@ internal sealed class KafkaAtMostOnceConsumer : ICloudEventSubscriber
             LingerMs = 10
         };
         _workItemContext = new KafkaWorkItemContext(registry, new(options, _telemetry));
-        _topics = registry.GetTopics(pubSubName).ToArray();
+        _topics = registry.GetSubscribedTopics(pubSubName).ToArray();
 
         var channelContext = new KafkaMessageChannelContext(
             pubSubName,
