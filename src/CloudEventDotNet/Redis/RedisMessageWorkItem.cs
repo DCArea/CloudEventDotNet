@@ -47,7 +47,7 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
     {
         try
         {
-            var cloudEvent = JsonSerializer.Deserialize<CloudEvent>((byte[])Message["data"]!)!;
+            var cloudEvent = JSON.Deserialize<CloudEvent>((byte[])Message["data"]!)!;
             var metadata = new CloudEventMetadata(ChannelContext.PubSubName, ChannelContext.Topic, cloudEvent.Type, cloudEvent.Source);
             if (!_context.Registry.TryGetHandler(metadata, out var handler))
             {

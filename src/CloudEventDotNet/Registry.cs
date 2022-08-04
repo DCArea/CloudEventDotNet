@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -80,17 +81,23 @@ public sealed class Registry
             .Select(m => m.Topic);
     }
 
-    public void Debug()
+    public string Debug()
     {
+        var sb = new StringBuilder();
+
+        sb.AppendLine("Metadata:");
         foreach (var (key, value) in _metadata)
         {
-            Console.WriteLine($"{key}: {value}");
+            sb.AppendLine($"{key}: {value}");
         }
 
+        sb.AppendLine("Handlers:");
         foreach (var (key, value) in _handlers)
         {
-            Console.WriteLine($"{key}: {value}");
+            sb.AppendLine($"{key}: {value}");
         }
+
+        return sb.ToString();
     }
 
 }

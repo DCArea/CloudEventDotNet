@@ -67,7 +67,7 @@ await pubsub.PublishAsync(new OrderCancelled(order.Id, reason));
 
 ### Subscribe and process cloud event:
 ``` csharp
-public class OrderCancelledHandler : ICloudEventHandler<OrderCancelled>
+public sealed class OrderCancelledHandler : ICloudEventHandler<OrderCancelled>
 {
     public async Task HandleAsync(CloudEvent<PingEvent> cloudEvent, CancellationToken token)
     {

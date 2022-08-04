@@ -20,7 +20,7 @@ public class HistogramAggregator
     {
         meter.CreateObservableCounter(name + "-bucket", CollectBuckets, description: description);
         meter.CreateObservableCounter(name + "-count", CollectCount, description: description);
-        meter.CreateObservableCounter(name + "-sum", CollectSum, unit, description);
+        meter.CreateObservableCounter(name + "-sum", CollectSum, description);
     }
 
     public HistogramAggregator(

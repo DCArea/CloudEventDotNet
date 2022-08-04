@@ -10,17 +10,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageVersion Include="Confluent.Kafka" Version="1.9.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(MExVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(MExVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MExVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(MExVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="$(MExVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="$(MExVersion)" />
-    <PackageVersion Include="Confluent.Kafka" Version="1.9.0" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />
     <PackageVersion Include="StackExchange.Redis" Version="2.6.48" />
-    <PackageVersion Include="Microsoft.SourceLink.GitLab" Version="1.1.1" />
   </ItemGroup>
   <ItemGroup>
     <PackageVersion Include="FakeItEasy" Version="7.3.1" />

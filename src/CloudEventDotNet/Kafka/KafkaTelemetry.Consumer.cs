@@ -62,7 +62,7 @@ internal sealed partial class KafkaConsumerTelemetry
 
     public void OnConsumerOffsetsCommited(CommittedOffsets offsets)
     {
-        if (offsets.Error != null)
+        if (offsets.Error.IsError)
         {
             LogOnConsumerOffsetsCommitedFailed(offsets.Error, offsets.Offsets);
         }
@@ -71,8 +71,6 @@ internal sealed partial class KafkaConsumerTelemetry
             LogOnConsumerOffsetsCommited(offsets.Offsets);
         }
     }
-
-
 
     [LoggerMessage(
         Level = LogLevel.Debug,

@@ -1,6 +1,3 @@
-
-
-using System.Diagnostics.Metrics;
 using CloudEventDotNet;
 
 namespace CloudEventKafkaTester;

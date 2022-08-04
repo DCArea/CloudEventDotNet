@@ -19,7 +19,6 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
         string pubSubName,
         KafkaSubscribeOptions options,
         Registry registry,
-        IServiceScopeFactory scopeFactory,
         ILoggerFactory loggerFactory)
     {
         _pubSubName = pubSubName;
@@ -48,20 +47,26 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
     private Task _commitLoop = default!;
     public Task StartAsync()
     {
-        _consumer.Subscribe(_topics);
-        _consumeLoop = Task.Factory.StartNew(ConsumeLoop, TaskCreationOptions.LongRunning);
-        _commitLoop = Task.Run(CommitLoop);
+        if (_topics.Any())
+        {
+            _consumer.Subscribe(_topics);
+            _consumeLoop = Task.Factory.StartNew(ConsumeLoop, TaskCreationOptions.LongRunning);
+            _commitLoop = Task.Run(CommitLoop);
+        }
         return Task.CompletedTask;
     }
 
     public async Task StopAsync()
     {
-        _consumer.Unsubscribe();
-        _stopTokenSource.Cancel();
-        await _consumeLoop;
-        await _commitLoop;
-        await Task.WhenAll(_channels.Values.Select(ch => ch.StopAsync()));
-        CommitOffsets();
+        if (_topics.Any())
+        {
+            _stopTokenSource.Cancel();
+            await _consumeLoop;
+            await _commitLoop;
+            await Task.WhenAll(_channels.Values.Select(ch => ch.StopAsync()));
+            CommitOffsets();
+            _consumer.Unsubscribe();
+        }
         _consumer.Close();
     }
 
@@ -72,7 +77,7 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
         {
             try
             {
-                ConsumeResult<byte[], byte[]> consumeResult = _consumer.Consume(10000);
+                ConsumeResult<byte[], byte[]> consumeResult = _consumer.Consume(_stopTokenSource.Token);
                 if (consumeResult == null)
                 {
                     continue;
@@ -80,12 +85,9 @@ internal sealed class KafkaAtLeastOnceConsumer : ICloudEventSubscriber
                 _telemetry.OnMessageFetched(consumeResult.TopicPartitionOffset);
 
                 var channel = _channels[consumeResult.TopicPartition];
-                var vt = channel.WriteAsync(consumeResult);
-                if (!vt.IsCompletedSuccessfully)
-                {
-                    vt.ConfigureAwait(false).GetAwaiter().GetResult();
-                }
+                channel.DispatchMessage(consumeResult);
             }
+            catch (OperationCanceledException) { break; }
             catch (Exception e)
             {
                 _telemetry.OnConsumeFailed(e);

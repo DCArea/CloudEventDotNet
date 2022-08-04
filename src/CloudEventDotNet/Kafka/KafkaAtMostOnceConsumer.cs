@@ -7,6 +7,7 @@ internal sealed class KafkaAtMostOnceConsumer : ICloudEventSubscriber
 {
     private readonly IConsumer<byte[], byte[]> _consumer;
     private readonly KafkaWorkItemContext _workItemContext;
+    private readonly string[] _topics;
     private readonly KafkaMessageChannel _channel;
     private readonly KafkaConsumerTelemetry _telemetry;
     private readonly CancellationTokenSource _stopTokenSource = new();
@@ -34,6 +35,7 @@ internal sealed class KafkaAtMostOnceConsumer : ICloudEventSubscriber
             LingerMs = 10
         };
         _workItemContext = new KafkaWorkItemContext(registry, new(options, _telemetry));
+        _topics = registry.GetTopics(pubSubName).ToArray();
 
         var channelContext = new KafkaMessageChannelContext(
             pubSubName,
@@ -56,17 +58,28 @@ internal sealed class KafkaAtMostOnceConsumer : ICloudEventSubscriber
     private Task _consumeLoop = default!;
     public Task StartAsync()
     {
-        _consumeLoop = Task.Factory.StartNew(ConsumeLoop, TaskCreationOptions.LongRunning);
+        if (_topics.Any())
+        {
+            _consumer.Subscribe(_topics);
+            _consumeLoop = Task.Factory.StartNew(ConsumeLoop, TaskCreationOptions.LongRunning);
+        }
         return Task.CompletedTask;
     }
 
     public async Task StopAsync()
     {
-        _consumer.Unsubscribe();
-        _stopTokenSource.Cancel();
-        await _consumeLoop;
-        _consumer.Close();
-        await _channel.StopAsync();
+        if (_topics.Any())
+        {
+            _consumer.Unsubscribe();
+            _stopTokenSource.Cancel();
+            await _consumeLoop;
+            _consumer.Close();
+            await _channel.StopAsync();
+        }
+        else
+        {
+            _consumer.Close();
+        }
     }
 
     private void ConsumeLoop()
@@ -82,12 +95,9 @@ internal sealed class KafkaAtMostOnceConsumer : ICloudEventSubscriber
                     continue;
                 }
                 _telemetry.OnMessageFetched(consumeResult.TopicPartitionOffset);
-                var vt = _channel.WriteAsync(consumeResult);
-                if (!vt.IsCompletedSuccessfully)
-                {
-                    vt.ConfigureAwait(false).GetAwaiter().GetResult();
-                }
+                _channel.DispatchMessage(consumeResult);
             }
+            catch (OperationCanceledException) { break; }
             catch (Exception e)
             {
                 _telemetry.OnConsumeFailed(e);

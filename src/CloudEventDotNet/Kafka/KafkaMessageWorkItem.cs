@@ -51,7 +51,7 @@ internal sealed class KafkaMessageWorkItem : IThreadPoolWorkItem
     {
         try
         {
-            var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(_message.Message.Value)!;
+            var cloudEvent = JSON.Deserialize<CloudEvent>(_message.Message.Value)!;
             var metadata = new CloudEventMetadata(_channelContext.PubSubName, _message.Topic, cloudEvent.Type, cloudEvent.Source);
             if (!_context.Registry.TryGetHandler(metadata, out var handler))
             {

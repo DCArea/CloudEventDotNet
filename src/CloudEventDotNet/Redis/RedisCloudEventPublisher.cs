@@ -23,7 +23,7 @@ internal sealed class RedisCloudEventPublisher : ICloudEventPublisher
 
     public async Task PublishAsync<TData>(string topic, CloudEvent<TData> cloudEvent)
     {
-        byte[] data = JsonSerializer.SerializeToUtf8Bytes(cloudEvent);
+        byte[] data = JSON.SerializeToUtf8Bytes(cloudEvent);
         var id = await _database.StreamAddAsync(
             topic,
             "data",

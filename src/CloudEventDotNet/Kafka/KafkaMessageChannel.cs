@@ -53,9 +53,7 @@ internal class KafkaMessageChannel
         return Reader.StopAsync();
     }
 
-    public ChannelWriter<KafkaMessageWorkItem> Writer => _channel.Writer;
-
-    public ValueTask WriteAsync(ConsumeResult<byte[], byte[]> message)
+    public void DispatchMessage(ConsumeResult<byte[], byte[]> message)
     {
         var workItem = new KafkaMessageWorkItem(
             _channelContext,
@@ -63,14 +61,11 @@ internal class KafkaMessageChannel
             _telemetry,
             message);
 
-        if (_channel.Writer.TryWrite(workItem))
+        if (!_channel.Writer.TryWrite(workItem))
         {
-            return ValueTask.CompletedTask;
+            _channel.Writer.WriteAsync(workItem).AsTask().GetAwaiter().GetResult();
         }
-        else
-        {
-            return _channel.Writer.WriteAsync(workItem);
-        }
+        //ThreadPool.UnsafeQueueUserWorkItem(workItem, false);
     }
 
     public KafkaMessageChannelReader Reader { get; }

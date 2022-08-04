@@ -26,7 +26,7 @@ internal sealed class KafkaCloudEventPublisher : ICloudEventPublisher
     {
         var message = new Message<byte[], byte[]>
         {
-            Value = JsonSerializer.SerializeToUtf8Bytes(cloudEvent)
+            Value = JSON.SerializeToUtf8Bytes(cloudEvent)
         };
 
         DeliveryResult<byte[], byte[]> result = await _producer.ProduceAsync(topic, message).ConfigureAwait(false);
