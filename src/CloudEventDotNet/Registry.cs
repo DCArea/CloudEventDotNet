@@ -65,7 +65,7 @@ public sealed class Registry
                 Source: @event.Source,
                 Type: @event.Type,
                 Time: @event.Time,
-                Data: @event.Data.Deserialize<TData>()!,
+                Data: @event.Data.Deserialize<TData>(JSON.DefaultJsonSerializerOptions)!,
                 DataSchema: @event.DataSchema,
                 Subject: @event.Subject
             );
