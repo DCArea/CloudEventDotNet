@@ -1,8 +1,6 @@
 
 using System.Reflection;
-using CloudEventDotNet.Kafka;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace CloudEventDotNet;
 

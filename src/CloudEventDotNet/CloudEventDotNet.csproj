@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <InternalsVisibleTo Include="CloudEventDotNet.Redis" />
+    <InternalsVisibleTo Include="CloudEventDotNet.Kafka" />
     <InternalsVisibleTo Include="CloudEventDotNet.Test" />
   </ItemGroup>
 
