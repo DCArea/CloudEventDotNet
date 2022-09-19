@@ -4,6 +4,9 @@ using Microsoft.Extensions.Options;
 
 namespace CloudEventDotNet;
 
+/// <summary>
+/// A hosted service to pull CloudEvents from subscribed topics
+/// </summary>
 public class SubscribeHostedService : IHostedService
 {
     private readonly PubSubOptions _options;

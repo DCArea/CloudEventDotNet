@@ -75,3 +75,15 @@ public sealed class OrderCancelledHandler : ICloudEventHandler<OrderCancelled>
     }
 }
 ```
+
+## Performance
+
+The benchmark result on a 4*2.4GHz Core VM:
+
+|      | Kafka | Redis |  
+| --- | --- | --- |  
+| Publish | ~100k/s | ~90k/s |  
+| Subscribe | ~150k/s | ~40k/s |  
+
+The benchmark code is located at `perf/CloudEventTester`
+

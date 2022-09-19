@@ -3,8 +3,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace CloudEventDotNet;
+
 public static class RedisPubSubBuilderExtensions
 {
+    /// <summary>
+    /// Add a redis pubsub
+    /// </summary>
+    /// <param name="builder">The builder to configure pubsub</param>
+    /// <param name="name">The name of this pubsub</param>
+    /// <param name="configurePublish">An action to configure publiser.</param>
+    /// <param name="configureSubscribe">An action to configure subscriber.</param>
+    /// <returns>The configured pubsub builder.</returns>
     public static PubSubBuilder AddRedisPubSub(
         this PubSubBuilder builder,
         string name,

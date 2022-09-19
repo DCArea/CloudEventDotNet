@@ -7,6 +7,9 @@ namespace CloudEventDotNet;
 
 internal delegate Task HandleCloudEventDelegate(IServiceProvider serviceProvider, CloudEvent @event, CancellationToken token);
 
+/// <summary>
+/// A registry of CloudEvent metadata and handlers
+/// </summary>
 public sealed class Registry
 {
     private readonly Dictionary<Type, CloudEventMetadata> _metadata = new();
@@ -16,6 +19,12 @@ public sealed class Registry
     private readonly string _defaultTopic;
     private readonly string _defaultSource;
 
+    /// <summary>
+    /// Constructor of Registry
+    /// </summary>
+    /// <param name="defaultPubSubName">The default PubSub name</param>
+    /// <param name="defaultTopic">The default topic</param>
+    /// <param name="defaultSource">The default source</param>
     public Registry(string defaultPubSubName, string defaultTopic, string defaultSource)
     {
         _defaultPubSubName = defaultPubSubName;
@@ -74,6 +83,11 @@ public sealed class Registry
         }
     }
 
+    /// <summary>
+    /// Get topics subscribed by specified pubsub
+    /// </summary>
+    /// <param name="pubSubName">The pubsub name</param>
+    /// <returns></returns>
     public IEnumerable<string> GetSubscribedTopics(string pubSubName)
     {
         return _handlers.Keys
@@ -82,6 +96,10 @@ public sealed class Registry
             .Distinct();
     }
 
+    /// <summary>
+    /// Show registered metadata and handlers
+    /// </summary>
+    /// <returns>Registered metadata and handlers</returns>
     public string Debug()
     {
         var sb = new StringBuilder();
