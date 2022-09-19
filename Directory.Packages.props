@@ -10,22 +10,22 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageVersion Include="Confluent.Kafka" Version="1.9.0" />
+    <PackageVersion Include="Confluent.Kafka" Version="1.9.3" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="$(MExVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MExVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.2" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />
-    <PackageVersion Include="StackExchange.Redis" Version="2.6.48" />
+    <PackageVersion Include="StackExchange.Redis" Version="2.6.66" />
   </ItemGroup>
   <ItemGroup>
     <PackageVersion Include="FakeItEasy" Version="7.3.1" />
     <PackageVersion Include="FluentAssertions" Version="6.7.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.2.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.3.1" />
     <PackageVersion Include="RichardSzalay.MockHttp" Version="6.0.0" />
     <PackageVersion Include="coverlet.collector" Version="3.1.2" />
     <PackageVersion Include="skwas.MockHttp" Version="3.0.1" />
