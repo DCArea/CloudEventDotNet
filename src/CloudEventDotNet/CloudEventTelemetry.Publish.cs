@@ -27,10 +27,7 @@ internal static class CloudEventPublishTelemetry
             {
                 activity.SetTag("cloudevents.event_subject", cloudEvent.Subject);
             }
-            if (cloudEvent.Extensions is null)
-            {
-                cloudEvent.Extensions = new();
-            }
+            cloudEvent.Extensions ??= new();
             cloudEvent.Extensions["traceparent"] = activity.Id;
             cloudEvent.Extensions["tracestate"] = activity.TraceStateString;
         }

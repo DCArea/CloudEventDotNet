@@ -22,10 +22,7 @@ internal static partial class RedisTelemetry
     {
         LogOnMessageProduced(logger, topic, messageId);
         var activity = Activity.Current;
-        if (activity is not null)
-        {
-            activity.SetTag("messaging.redis.client_name", multiplexer.ClientName);
-        }
+        activity?.SetTag("messaging.redis.client_name", multiplexer.ClientName);
     }
 
     public static void OnMessageProcessed(

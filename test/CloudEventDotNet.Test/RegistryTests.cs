@@ -22,7 +22,7 @@ public class RegistryTests
     public void Load()
     {
         var metadata = _registry.GetMetadata(typeof(SimpleEvent));
-        Assert.True(_registry.TryGetHandler(metadata, out var handler));
+        Assert.True(_registry.TryGetHandler(metadata, out _));
     }
 
     [Fact]
