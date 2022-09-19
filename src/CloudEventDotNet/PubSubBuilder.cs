@@ -67,11 +67,6 @@ public class PubSubBuilder
                 continue;
             }
 
-            if (!typeInfo.IsSealed)
-            {
-                continue;
-            }
-
             var handlerInterfaces = type
                 .GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICloudEventHandler<>))

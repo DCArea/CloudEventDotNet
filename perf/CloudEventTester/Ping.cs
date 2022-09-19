@@ -5,7 +5,7 @@ namespace CloudEventKafkaTester;
 [CloudEvent]
 public record Ping();
 
-public sealed class PingHandler : ICloudEventHandler<Ping>
+public class PingHandler : ICloudEventHandler<Ping>
 {
     private static long _count = 0;
     public static long Count => _count;
