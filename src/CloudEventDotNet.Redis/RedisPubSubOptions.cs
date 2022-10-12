@@ -14,7 +14,7 @@ public abstract class RedisPubSubOptions
     /// <summary>
     /// Database selected after connecting to redis.
     /// </summary>
-    public int Database { get; set; }
+    public int Database { get; set; } = -1;
 }
 
 /// <summary>
