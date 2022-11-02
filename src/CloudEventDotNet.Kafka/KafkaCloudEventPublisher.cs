@@ -9,9 +9,11 @@ internal sealed class KafkaCloudEventPublisher : ICloudEventPublisher
 {
     private readonly IProducer<byte[], byte[]> _producer;
     private readonly KafkaProducerTelemetry _telemetry;
+    private readonly ILogger _logger;
 
     public KafkaCloudEventPublisher(
         string pubSubName,
+        ILogger<KafkaCloudEventPublisher> logger,
         KafkaPublishOptions options,
         ILoggerFactory loggerFactory)
     {
@@ -20,6 +22,7 @@ internal sealed class KafkaCloudEventPublisher : ICloudEventPublisher
             .SetErrorHandler((_, e) => _telemetry.OnProducerError(e))
             .SetLogHandler((_, log) => _telemetry.OnProducerLog(log))
             .Build();
+        _logger = logger;
     }
 
     public async Task PublishAsync<TData>(string topic, CloudEvent<TData> cloudEvent)
@@ -32,4 +35,5 @@ internal sealed class KafkaCloudEventPublisher : ICloudEventPublisher
         DeliveryResult<byte[], byte[]> result = await _producer.ProduceAsync(topic, message).ConfigureAwait(false);
         _telemetry.OnMessageProduced(result, _producer.Name);
     }
+
 }

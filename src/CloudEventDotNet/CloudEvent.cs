@@ -28,6 +28,19 @@ internal record CloudEvent(
 
     [JsonExtensionData]
     public Dictionary<string, JsonElement> Extensions { get; set; } = new();
+
+    [JsonIgnore]
+    public int Retry
+    {
+        get
+        {
+            return Extensions["retry"].GetInt32();
+        }
+        set
+        {
+            Extensions["retry"] = JsonSerializer.SerializeToElement(value);
+        }
+    }
 }
 
 /// <summary>

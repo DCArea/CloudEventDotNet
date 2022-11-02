@@ -1,4 +1,4 @@
-using System.Text.Json;
+using System.Diagnostics;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 
@@ -49,6 +49,7 @@ internal sealed class KafkaMessageWorkItem : IThreadPoolWorkItem
 
     internal async Task ExecuteAsync()
     {
+        Activity? activity = null;
         try
         {
             var cloudEvent = JSON.Deserialize<CloudEvent>(_message.Message.Value)!;
@@ -58,12 +59,14 @@ internal sealed class KafkaMessageWorkItem : IThreadPoolWorkItem
                 CloudEventProcessingTelemetry.OnHandlerNotFound(_telemetry.Logger, metadata);
                 return;
             }
-            bool succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token).ConfigureAwait(false);
-            KafkaConsumerTelemetry.OnConsumed(_channelContext.ConsumerName, _channelContext.ConsumerGroup);
 
+            // processing
+            activity = handler.StartProcessing(cloudEvent);
+            KafkaConsumerTelemetry.OnConsuming(activity, _channelContext.ConsumerName, _channelContext.ConsumerGroup);
+            bool succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token).ConfigureAwait(false);
             if (!succeed)
             {
-                await _context.Producer.ReproduceAsync(_message).ConfigureAwait(false);
+                await _context.Republisher.RepublishAsync(_message.Topic, cloudEvent).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -73,6 +76,7 @@ internal sealed class KafkaMessageWorkItem : IThreadPoolWorkItem
         finally
         {
             _waiter.SetResult();
+            activity?.Dispose();
         }
     }
 }

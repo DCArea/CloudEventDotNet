@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Http.Headers;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 
@@ -19,16 +20,18 @@ internal sealed partial class KafkaProducerTelemetry
         Message = "Produced message {topic}:{partition}:{offset}"
     )]
     partial void LogOnMessageProduced(string topic, int partition, long offset);
+    public void LogOnMessageProduced(DeliveryResult<byte[], byte[]> result)
+        => LogOnMessageProduced(result.Topic, result.Partition.Value, result.Offset.Value);
     public void OnMessageProduced(DeliveryResult<byte[], byte[]> result, string clientId)
     {
-        var activity = Activity.Current;
-        if (activity is not null)
+        if (Activity.Current is { } activity)
         {
             activity.SetTag("messaging.kafka.client_id", clientId);
             activity.SetTag("messaging.kafka.partition", result.Partition.Value);
         }
-        LogOnMessageProduced(result.Topic, result.Partition.Value, result.Offset.Value);
+        LogOnMessageProduced(result);
     }
+
 
 
     [LoggerMessage(

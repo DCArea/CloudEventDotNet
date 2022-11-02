@@ -32,6 +32,11 @@ public class KafkaSubscribeOptions
     /// The limit of unprocessed CloudEvents in local process queue.
     /// </summary>
     public int RunningWorkItemLimit { get; set; } = 1024;
+
+    /// <summary>
+    /// Max retries for cloud events failed to processing, set 0 to disable retries, default to int.MaxValue.
+    /// </summary>
+    public int MaxRetries { get; set; } = int.MaxValue;
 }
 
 public enum DeliveryGuarantee

@@ -41,10 +41,15 @@ internal partial class CloudEventProcessingTelemetry
     public Activity? OnProcessing(CloudEvent cloudEvent)
     {
         ActivityContext parentContext = default;
+        int retry = 0;
         if (cloudEvent.Extensions is not null && cloudEvent.Extensions.Count != 0)
         {
             cloudEvent.Extensions.TryGetValue("traceparent", out var traceparent);
             cloudEvent.Extensions.TryGetValue("tracestate", out var tracestate);
+            if(cloudEvent.Extensions.TryGetValue("retry", out var retryElement))
+            {
+                retry = retryElement.GetInt32();
+            }
 
             ActivityContext.TryParse(traceparent.GetString(), tracestate.GetString(), out parentContext);
         }
@@ -62,6 +67,8 @@ internal partial class CloudEventProcessingTelemetry
             {
                 activity.SetTag("cloudevents.event_subject", cloudEvent.Subject);
             }
+
+            activity.SetTag("cloudevents.retry", retry);
         }
         return activity;
     }
@@ -84,5 +91,11 @@ internal partial class CloudEventProcessingTelemetry
         Message = "Failed to process CloudEvent {Id}"
     )]
     public partial void OnProcessingCloudEventFailed(Exception ex, string id);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Dropped CloudEvent {Id}"
+    )]
+    public static partial void LogOnCloudEventDropped(ILogger logger, string id);
 }
 

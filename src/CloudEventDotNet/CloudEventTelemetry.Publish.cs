@@ -41,4 +41,9 @@ internal static class CloudEventPublishTelemetry
         aggregator.Add(1);
     }
 
+    //public static void OnCloudEventRepublished(CloudEventMetadata metadata)
+    //{
+    //    var aggregator = s_cloudEventsPublished.FindOrCreate(new("pubsub", metadata.PubSubName, "topic", metadata.Topic, "type", metadata.Type));
+    //    aggregator.Add(1);
+    //}
 }
