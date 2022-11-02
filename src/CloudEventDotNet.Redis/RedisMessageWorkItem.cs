@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using CloudEventDotNet.Redis.Instruments;
 using StackExchange.Redis;
@@ -45,6 +46,8 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
 
     internal async Task ExecuteAsync()
     {
+        Activity? activity = null;
+
         try
         {
             var cloudEvent = JSON.Deserialize<CloudEvent>((byte[])Message["data"]!)!;
@@ -53,6 +56,11 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
             {
                 return;
             }
+
+
+            // processing
+            activity = handler.StartProcessing(cloudEvent);
+            RedisTelemetry.OnMessageProcessing(activity, ChannelContext.ConsumerGroup, ChannelContext.ConsumerName);
             bool succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token).ConfigureAwait(false);
             if (succeed)
             {
@@ -62,7 +70,6 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
                     Message.Id).ConfigureAwait(false);
                 _context.RedisTelemetry.OnMessageAcknowledged(Message.Id.ToString());
             }
-            RedisTelemetry.OnMessageProcessed(ChannelContext.ConsumerGroup, ChannelContext.ConsumerName);
         }
         catch (Exception ex)
         {

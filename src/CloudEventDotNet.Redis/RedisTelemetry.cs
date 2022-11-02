@@ -25,12 +25,12 @@ internal static partial class RedisTelemetry
         activity?.SetTag("messaging.redis.client_name", multiplexer.ClientName);
     }
 
-    public static void OnMessageProcessed(
+    public static void OnMessageProcessing(
+        Activity? activity,
         string consumerGroup,
         string consumerName
     )
     {
-        Activity? activity = Activity.Current;
         if (activity is not null)
         {
             activity.SetTag("messaging.redis.client_id", consumerName);
