@@ -1,7 +1,6 @@
 using CloudEventDotNet.Diagnostics.Aggregators;
 using CloudEventDotNet.Redis.Instruments;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
 
 namespace CloudEventDotNet.Redis;
 
@@ -52,9 +51,9 @@ internal sealed partial class RedisMessageTelemetry
 
     [LoggerMessage(
         Level = LogLevel.Error,
-        Message = "Error in fetch new messages loop"
+        Message = "Error on fetching new messages"
     )]
-    public partial void OnFetchNewMessagesLoopError(Exception exception);
+    public partial void OnFetchNewMessagesError(Exception exception);
 
     // ..
 
@@ -110,9 +109,9 @@ internal sealed partial class RedisMessageTelemetry
 
     [LoggerMessage(
         Level = LogLevel.Error,
-        Message = "Error in claim messages loop"
+        Message = "Error on claiming pending messages"
     )]
-    public partial void OnClaimMessagesLoopError(Exception exception);
+    public partial void OnClaimMessagesError(Exception exception);
 
     [LoggerMessage(
         Level = LogLevel.Debug,
@@ -171,7 +170,7 @@ internal sealed partial class RedisMessageTelemetry
     // reader
     [LoggerMessage(
         Level = LogLevel.Debug,
-        Message = "Polling started")]
+        Message = "Message channel reader started")]
     public partial void OnMessageChannelReaderStarted();
 
     [LoggerMessage(

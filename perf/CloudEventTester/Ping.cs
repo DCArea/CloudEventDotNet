@@ -1,6 +1,6 @@
 using CloudEventDotNet;
 
-namespace CloudEventKafkaTester;
+namespace CloudEventTester;
 
 [CloudEvent]
 public record Ping();
@@ -11,7 +11,7 @@ public class PingHandler : ICloudEventHandler<Ping>
     public static long Count => s_count;
     public Task HandleAsync(CloudEvent<Ping> cloudEvent, CancellationToken token)
     {
-        Interlocked.Increment(ref s_count);
+        _ = Interlocked.Increment(ref s_count);
         return Task.CompletedTask;
     }
 }

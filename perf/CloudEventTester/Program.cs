@@ -1,4 +1,4 @@
-using CloudEventKafkaTester;
+using CloudEventTester;
 
 Tester tester = args[0] switch
 {

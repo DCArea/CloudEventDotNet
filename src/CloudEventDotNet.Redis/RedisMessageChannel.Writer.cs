@@ -12,8 +12,8 @@ internal sealed class RedisMessageChannelWriter
     private readonly RedisWorkItemContext _workItemContext;
     private readonly RedisMessageTelemetry _telemetry;
     private readonly CancellationToken _stopToken;
-    private readonly Task _pollNewMessagesLoop;
-    private readonly Task _claimPendingMessagesLoop;
+    private Task? _pollNewMessagesLoop;
+    private Task? _claimPendingMessagesLoop;
 
     public RedisMessageChannelWriter(
         RedisSubscribeOptions options,
@@ -31,36 +31,47 @@ internal sealed class RedisMessageChannelWriter
         _workItemContext = workItemContext;
         _telemetry = telemetry;
         _stopToken = stopToken;
+    }
+
+    public async Task StartAsync()
+    {
+        try
+        {
+            _ = await _database.StreamCreateConsumerGroupAsync(
+                _channelContext.Topic,
+                _channelContext.ConsumerGroup,
+                StreamPosition.NewMessages);
+        }
+        catch (RedisServerException ex)
+        {
+            if (ex.Message != "BUSYGROUP Consumer Group name already exists")
+            {
+                throw;
+            }
+        }
+
         _pollNewMessagesLoop = Task.Run(PollNewMessagesLoop, default);
         _claimPendingMessagesLoop = Task.Run(ClaimPendingMessagesLoop, default);
     }
 
     public async Task StopAsync()
     {
+        if (_pollNewMessagesLoop is null || _claimPendingMessagesLoop is null)
+        {
+            throw new InvalidOperationException("Redis message channel has not started");
+        }
         await _pollNewMessagesLoop;
         await _claimPendingMessagesLoop;
     }
 
     private async Task PollNewMessagesLoop()
     {
-        try
+        _telemetry.OnFetchMessagesLoopStarted();
+        while (!_stopToken.IsCancellationRequested)
         {
-            _telemetry.OnFetchMessagesLoopStarted();
             try
             {
-                await _database.StreamCreateConsumerGroupAsync(
-                    _channelContext.Topic,
-                    _channelContext.ConsumerGroup,
-                    StreamPosition.NewMessages);
-            }
-            catch (RedisServerException ex)
-            {
-                if (ex.Message != "BUSYGROUP Consumer Group name already exists") throw;
-            }
-
-            while (!_stopToken.IsCancellationRequested)
-            {
-                var messages = await _database.StreamReadGroupAsync(
+                StreamEntry[] messages = await _database.StreamReadGroupAsync(
                     _channelContext.Topic,
                     _channelContext.ConsumerGroup,
                     _channelContext.ConsumerGroup,
@@ -71,87 +82,101 @@ internal sealed class RedisMessageChannelWriter
                 {
                     _telemetry.OnMessagesFetched(messages.Length);
                     await DispatchMessages(messages).ConfigureAwait(false);
+                    continue;
                 }
-                else
-                {
-                    _telemetry.OnNoMessagesFetched();
-                    await Task.Delay(_options.PollInterval, default);
-                }
+                _telemetry.OnNoMessagesFetched();
+                await Task.Delay(_options.PollInterval, _stopToken);
             }
-            _telemetry.OnFetchNewMessagesLoopStopped();
+            catch (Exception ex)
+            {
+                if (ex is OperationCanceledException cancel && cancel.CancellationToken == _stopToken)
+                {
+                    break;
+                }
+                _telemetry.OnFetchNewMessagesError(ex);
+                try
+                {
+                    await Task.Delay(_options.PollInterval, _stopToken);
+                }
+                catch { }
+            }
         }
-        catch (Exception ex)
-        {
-            _telemetry.OnFetchNewMessagesLoopError(ex);
-            throw;
-        }
+        _telemetry.OnFetchNewMessagesLoopStopped();
     }
 
 
     private async Task ClaimPendingMessagesLoop()
     {
-        try
+        _telemetry.OnClaimMessagesLoopStarted();
+        while (!_stopToken.IsCancellationRequested)
         {
-            _telemetry.OnClaimMessagesLoopStarted();
-            while (!_stopToken.IsCancellationRequested)
+            try
             {
                 await ClaimPendingMessages().ConfigureAwait(false);
-                await Task.Delay(_options.PollInterval, default);
+                await Task.Delay(_options.PollInterval, _stopToken);
             }
-            _telemetry.OnClaimMessagesLoopStopped();
-
-            async Task ClaimPendingMessages()
+            catch (Exception ex)
             {
-                while (!_stopToken.IsCancellationRequested)
+                if (ex is OperationCanceledException cancel && cancel.CancellationToken == _stopToken)
                 {
-                    var pendingMessages = await _database.StreamPendingMessagesAsync(
-                        _channelContext.Topic,
-                        _channelContext.ConsumerGroup,
-                        _options.PollBatchSize,
-                        RedisValue.Null).ConfigureAwait(false);
-                    _telemetry.OnPendingMessagesInformationFetched(pendingMessages.Length);
-
-                    if (pendingMessages.Length == 0)
-                    {
-                        _telemetry.OnNoMessagesToClaim();
-                        return;
-                    }
-
-                    var messagesToClaim = pendingMessages
-                        .Where(msg => msg.IdleTimeInMilliseconds >= _options.ProcessingTimeout.TotalMilliseconds)
-                        .Select(msg => msg.MessageId)
-                        .ToArray();
-
-                    if (messagesToClaim.Length == 0)
-                    {
-                        var first = pendingMessages[0];
-                        _telemetry.OnNoTimeoutedMessagesToClaim(first.MessageId.ToString(), first.IdleTimeInMilliseconds, first.DeliveryCount);
-                        return;
-                    }
-
-                    var claimedMessages = await _database.StreamClaimAsync(
-                        _channelContext.Topic,
-                        _channelContext.ConsumerGroup,
-                        _channelContext.ConsumerGroup,
-                        (long)_options.ProcessingTimeout.TotalMilliseconds,
-                        messagesToClaim
-                    ).ConfigureAwait(false);
-
-                    _telemetry.OnMessagesClaimed(claimedMessages.Length);
-                    await DispatchMessages(claimedMessages).ConfigureAwait(false);
+                    break;
                 }
+                _telemetry.OnClaimMessagesError(ex);
+                try
+                {
+                    await Task.Delay(_options.PollInterval, _stopToken);
+                }
+                catch { }
             }
         }
-        catch (Exception ex)
+        _telemetry.OnClaimMessagesLoopStopped();
+
+        async Task ClaimPendingMessages()
         {
-            _telemetry.OnClaimMessagesLoopError(ex);
-            throw;
+            while (!_stopToken.IsCancellationRequested)
+            {
+                StreamPendingMessageInfo[] pendingMessages = await _database.StreamPendingMessagesAsync(
+                    _channelContext.Topic,
+                    _channelContext.ConsumerGroup,
+                    _options.PollBatchSize,
+                    RedisValue.Null).ConfigureAwait(false);
+                _telemetry.OnPendingMessagesInformationFetched(pendingMessages.Length);
+
+                if (pendingMessages.Length == 0)
+                {
+                    _telemetry.OnNoMessagesToClaim();
+                    return;
+                }
+
+                RedisValue[] messagesToClaim = pendingMessages
+                    .Where(msg => msg.IdleTimeInMilliseconds >= _options.ProcessingTimeout.TotalMilliseconds)
+                    .Select(msg => msg.MessageId)
+                    .ToArray();
+
+                if (messagesToClaim.Length == 0)
+                {
+                    StreamPendingMessageInfo first = pendingMessages[0];
+                    _telemetry.OnNoTimeoutedMessagesToClaim(first.MessageId.ToString(), first.IdleTimeInMilliseconds, first.DeliveryCount);
+                    return;
+                }
+
+                StreamEntry[] claimedMessages = await _database.StreamClaimAsync(
+                    _channelContext.Topic,
+                    _channelContext.ConsumerGroup,
+                    _channelContext.ConsumerGroup,
+                    (long)_options.ProcessingTimeout.TotalMilliseconds,
+                    messagesToClaim
+                ).ConfigureAwait(false);
+
+                _telemetry.OnMessagesClaimed(claimedMessages.Length);
+                await DispatchMessages(claimedMessages).ConfigureAwait(false);
+            }
         }
     }
 
     private async ValueTask DispatchMessages(StreamEntry[] messages)
     {
-        foreach (var message in messages)
+        foreach (StreamEntry message in messages)
         {
             var workItem = new RedisMessageWorkItem(
                 _channelContext,
@@ -162,7 +187,7 @@ internal sealed class RedisMessageChannelWriter
             {
                 await _channelWriter.WriteAsync(workItem).ConfigureAwait(false);
             }
-            ThreadPool.UnsafeQueueUserWorkItem(workItem, false);
+            _ = ThreadPool.UnsafeQueueUserWorkItem(workItem, false);
             _telemetry.OnMessageDispatched(message.Id.ToString());
         }
         _telemetry.OnMessagesDispatched(messages.Length);
