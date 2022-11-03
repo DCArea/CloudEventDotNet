@@ -57,6 +57,8 @@ internal sealed partial class RedisMessageChannel
     public RedisMessageChannelWriter Writer { get; }
     public RedisMessageChannelReader Reader { get; }
 
+    public async Task StartAsync() => await Writer.StartAsync();
+
     public async Task StopAsync()
     {
         _stopTokenSource.Cancel();

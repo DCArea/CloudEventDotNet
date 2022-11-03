@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
 using CloudEventDotNet;
-using Confluent.Kafka;
 
-namespace CloudEventKafkaTester;
+namespace CloudEventTester;
 
 public class PingTester : Tester
 {
@@ -18,13 +17,13 @@ public class PingTester : Tester
         _count = int.Parse(args[3]);
         _sp = Services.BuildServiceProvider();
 
-        if (_action == "pub" || _action == "pubsub")
+        if (_action is "pub" or "pubsub")
         {
             Console.WriteLine($"Starting publish");
             await Publish();
         }
 
-        if (_action == "sub" || _action == "pubsub")
+        if (_action is "sub" or "pubsub")
         {
             Console.WriteLine($"Starting subscribe");
             await Subscribe();
@@ -34,14 +33,14 @@ public class PingTester : Tester
 
     private async Task Publish()
     {
-        var pubsub = _sp.GetRequiredService<ICloudEventPubSub>();
+        ICloudEventPubSub pubsub = _sp.GetRequiredService<ICloudEventPubSub>();
         var tasks = new List<Task>();
         var sw = Stopwatch.StartNew();
         for (int i = 0; i < _parallelism; i++)
         {
             var task = Task.Run(async () =>
             {
-                for (var j = 0; j < _count; j++)
+                for (int j = 0; j < _count; j++)
                 {
                     await pubsub.PublishAsync(new Ping());
                 }
@@ -62,19 +61,19 @@ public class PingTester : Tester
 
         var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
         _ = Task.Run(() => Monitor(timer));
-        Console.ReadKey();
+        _ = Console.ReadKey();
         await subscriber.StopAsync(default);
     }
 
-    async Task Monitor(PeriodicTimer timer)
+    private async Task Monitor(PeriodicTimer timer)
     {
         long lastCount = 0L;
         int seconds = 0;
         while (await timer.WaitForNextTickAsync())
         {
             seconds++;
-            var currentCount = PingHandler.Count;
-            var delta = currentCount - lastCount;
+            long currentCount = PingHandler.Count;
+            long delta = currentCount - lastCount;
             Console.WriteLine($"Processed: {currentCount}, rate: {delta / 1.0:F1}/s");
             lastCount = currentCount;
             if (currentCount >= _count * _parallelism)

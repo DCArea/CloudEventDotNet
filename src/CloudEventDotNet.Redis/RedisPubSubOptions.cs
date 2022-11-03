@@ -47,7 +47,7 @@ public class RedisSubscribeOptions : RedisPubSubOptions
     /// <summary>
     /// The interval between polling for new CloudEvents
     /// </summary>
-    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(15);
+    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
     /// The limit of unprocessed CloudEvents in local process queue.

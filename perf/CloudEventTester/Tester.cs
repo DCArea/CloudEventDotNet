@@ -2,7 +2,7 @@
 using Confluent.Kafka;
 using StackExchange.Redis;
 
-namespace CloudEventKafkaTester;
+namespace CloudEventTester;
 
 public abstract class Tester
 {
@@ -13,7 +13,7 @@ public abstract class Tester
         Services = new ServiceCollection()
             .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
 
-        var providerName = Environment.GetEnvironmentVariable("PROVIDER")!.ToLowerInvariant();
+        string providerName = Environment.GetEnvironmentVariable("PROVIDER")!.ToLowerInvariant();
         if (providerName == "kafka")
         {
             ConfigureKafka();
@@ -28,9 +28,9 @@ public abstract class Tester
 
     private void ConfigureKafka()
     {
-        var builder = Services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: KafkaEnv.topic)
+        PubSubBuilder builder = Services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: KafkaEnv.topic)
             .Load(typeof(Ping).Assembly);
-        builder.AddKafkaPubSub("kafka", options =>
+        _ = builder.AddKafkaPubSub("kafka", options =>
         {
             options.ProducerConfig = new ProducerConfig
             {
@@ -57,7 +57,7 @@ public abstract class Tester
     private void ConfigureRedis()
     {
         var redis = ConnectionMultiplexer.Connect(RedisEnv.redisConnectionString);
-        Services.AddCloudEvents(defaultPubSubName: "redis", defaultTopic: RedisEnv.topic)
+        _ = Services.AddCloudEvents(defaultPubSubName: "redis", defaultTopic: RedisEnv.topic)
             .Load(typeof(Ping).Assembly)
             .AddRedisPubSub("redis", options =>
             {

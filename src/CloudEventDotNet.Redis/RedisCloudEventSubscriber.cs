@@ -24,11 +24,8 @@ internal class RedisCloudEventSubscriber : ICloudEventSubscriber
     {
         RedisTelemetry.OnSubscriberStarting(_logger);
         _subscribers = _channelFactory.Create(_pubSubName);
-        return Task.CompletedTask;
+        return Task.WhenAll(_subscribers.Select(sub => sub.StartAsync()));
     }
 
-    public async Task StopAsync()
-    {
-        await Task.WhenAll(_subscribers!.Select(s => s.StopAsync()));
-    }
+    public async Task StopAsync() => await Task.WhenAll(_subscribers!.Select(s => s.StopAsync()));
 }
