@@ -10,7 +10,7 @@ internal sealed partial class KafkaProducerTelemetry
 
     public KafkaProducerTelemetry(string pubSubName, ILoggerFactory loggerFactory)
     {
-        _logger = loggerFactory.CreateLogger($"{nameof(KafkaProducerTelemetry)}:{pubSubName}");
+        _logger = loggerFactory.CreateLogger($"CloudEventDotNet.KafkaProducerTelemetry:{pubSubName}");
     }
 
     // produce

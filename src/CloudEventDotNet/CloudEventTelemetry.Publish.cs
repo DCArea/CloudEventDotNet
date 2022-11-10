@@ -1,18 +1,26 @@
 
 using System.Diagnostics;
 using CloudEventDotNet.Diagnostics.Aggregators;
+using Microsoft.Extensions.Logging;
 
 namespace CloudEventDotNet;
 
-internal static class CloudEventPublishTelemetry
+internal static partial class CloudEventPublishTelemetry
 {
     static CloudEventPublishTelemetry()
     {
         s_cloudEventsPublished = new(CloudEventTelemetry.Meter, "dca_cloudevents_published");
     }
 
-    public static Activity? OnCloudEventPublishing<TData>(CloudEventMetadata metadata, CloudEvent<TData> cloudEvent)
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Publishing event {id}: {metadata}"
+    )]
+    static partial void LogPublishing(ILogger logger, string id, CloudEventMetadata metadata);
+    public static Activity? OnCloudEventPublishing<TData>(CloudEventMetadata metadata, CloudEvent<TData> cloudEvent, ILogger logger)
     {
+        LogPublishing(logger, cloudEvent.Id, metadata);
         var activity = CloudEventTelemetry.Source.StartActivity($"CloudEvents Create {cloudEvent.Type}", ActivityKind.Producer);
         if (activity is not null)
         {

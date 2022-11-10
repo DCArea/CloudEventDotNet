@@ -5,7 +5,7 @@ using CloudEventDotNet.TestEvents;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CloudEventDotNet.Test.Diagnostics;
-public class ActivityTests
+public partial class ActivityTests
 {
     private static readonly ActivityListener s_listener;
 
@@ -48,7 +48,7 @@ public class ActivityTests
         );
         var metadata = new CloudEventMetadata("testpubsub", "testtopic", sourceEvent!.Type, sourceEvent.Source);
 
-        var publishActivity = CloudEventPublishTelemetry.OnCloudEventPublishing(metadata, sourceEvent);
+        var publishActivity = CloudEventPublishTelemetry.OnCloudEventPublishing(metadata, sourceEvent, new NoopLogger());
         Assert.NotNull(publishActivity);
         Assert.Equal(publishActivity!.Id?.ToString(), sourceEvent.Extensions["traceparent"]?.ToString());
         Assert.Equal(publishActivity.TraceStateString?.ToString(), sourceEvent.Extensions["tracestate"]?.ToString());
