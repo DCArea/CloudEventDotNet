@@ -31,7 +31,7 @@ internal partial class CloudEventProcessingTelemetry
         ILoggerFactory loggerFactory,
         CloudEventMetadata metadata)
     {
-        _logger = loggerFactory.CreateLogger($"CloudEventProcessing:{metadata.PubSubName}:{metadata.Topic}");
+        _logger = loggerFactory.CreateLogger($"CloudEventDotNet.CloudEventProcessing:{metadata.PubSubName}:{metadata.Topic}");
         _metadata = metadata;
 
         _cloudEventsDeliveryLatency = s_cloudEventsDeliveryLatency.FindOrCreate(new("pubsub", metadata.PubSubName, "topic", metadata.Topic, "type", metadata.Type));
@@ -67,7 +67,7 @@ internal partial class CloudEventProcessingTelemetry
     }
 
     [LoggerMessage(
-        Level = LogLevel.Debug,
+        Level = LogLevel.Information,
         Message = "Process CloudEvent {Id}"
     )]
     public partial void LogOnCloudEventProcessed(string id);

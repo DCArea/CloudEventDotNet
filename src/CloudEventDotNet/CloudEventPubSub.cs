@@ -22,7 +22,7 @@ internal sealed class CloudEventPubSub : ICloudEventPubSub
         _registry = registry;
     }
 
-    public async Task PublishAsync<TData>(TData data)
+    public async Task<CloudEvent<TData>> PublishAsync<TData>(TData data)
     {
         var dataType = typeof(TData);
         var metadata = _registry.GetMetadata(dataType);
@@ -39,5 +39,6 @@ internal sealed class CloudEventPubSub : ICloudEventPubSub
         var publisher = _publishers[metadata.PubSubName];
         await publisher.PublishAsync(metadata.Topic, cloudEvent).ConfigureAwait(false);
         CloudEventPublishTelemetry.OnCloudEventPublished(metadata);
+        return cloudEvent;
     }
 }

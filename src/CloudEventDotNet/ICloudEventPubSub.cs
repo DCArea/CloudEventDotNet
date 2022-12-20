@@ -10,6 +10,6 @@ public interface ICloudEventPubSub
     /// </summary>
     /// <typeparam name="TData">The data type of the CloudEvent, must registered with <see cref="CloudEventAttribute"/></typeparam>
     /// <param name="data">The data of the CloudEvent</param>
-    /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-    Task PublishAsync<TData>(TData data);
+    /// <returns>The <see cref="Task"/> that represents the asynchronous operation, carries the published CloudEvent.</returns>
+    Task<CloudEvent<TData>> PublishAsync<TData>(TData data);
 }

@@ -11,7 +11,7 @@ public abstract class Tester
     public Tester()
     {
         Services = new ServiceCollection()
-            .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
+            .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Warning));
 
         string providerName = Environment.GetEnvironmentVariable("PROVIDER")!.ToLowerInvariant();
         if (providerName == "kafka")

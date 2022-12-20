@@ -6,7 +6,9 @@ namespace CloudEventDotNet.Kafka;
 
 internal sealed partial class KafkaConsumerTelemetry
 {
+#pragma warning disable IDE0032 // Use auto property
     private readonly ILogger _logger;
+#pragma warning restore IDE0032 // Use auto property
     public KafkaConsumerTelemetry(string pubSubName, ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger($"{nameof(CloudEventDotNet)}.{nameof(KafkaConsumerTelemetry)}:{pubSubName}");

@@ -14,7 +14,7 @@ internal static partial class CloudEventPublishTelemetry
 
 
     [LoggerMessage(
-        Level = LogLevel.Debug,
+        Level = LogLevel.Information,
         Message = "Publishing event {id}: {metadata}"
     )]
     static partial void LogPublishing(ILogger logger, string id, CloudEventMetadata metadata);
