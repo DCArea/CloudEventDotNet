@@ -5,6 +5,7 @@
     <InternalsVisibleTo Include="CloudEventDotNet.Kafka" />
     <InternalsVisibleTo Include="CloudEventDotNet.Test" />
     <InternalsVisibleTo Include="CloudEventTester" />
+    <InternalsVisibleTo Include="CloudEventDotNet.IntegrationTest" />
   </ItemGroup>
 
   <ItemGroup>

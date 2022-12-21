@@ -1,5 +1,4 @@
-using System.Text.Json;
-using CloudEventDotNet.Redis.Instruments;
+﻿using CloudEventDotNet.Redis.Instruments;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -23,7 +22,7 @@ internal sealed class RedisCloudEventPublisher : ICloudEventPublisher
 
     public async Task PublishAsync<TData>(string topic, CloudEvent<TData> cloudEvent)
     {
-        byte[] data = JSON.SerializeToUtf8Bytes(cloudEvent);
+        var data = JSON.SerializeToUtf8Bytes(cloudEvent);
         var id = await _database.StreamAddAsync(
             topic,
             "data",

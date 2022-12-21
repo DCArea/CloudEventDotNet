@@ -1,7 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <ItemGroup>
     <PackageReference Include="StackExchange.Redis" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CloudEventDotNet.IntegrationTest" />
   </ItemGroup>
 
   <ItemGroup>
