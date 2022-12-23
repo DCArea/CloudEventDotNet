@@ -1,4 +1,4 @@
-
+﻿
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -28,6 +28,12 @@ public class PubSubBuilder
         _defaultSource = defaultSource;
 
         services.AddOptions();
+        services.Configure<PubSubOptions>(opts =>
+        {
+            opts.DefaultPubSubName = _defaultPubSubName;
+            opts.DefaultTopic = _defaultTopic;
+            opts.DefaultSource = _defaultSource;
+        });
         services.AddHostedService<SubscribeHostedService>();
         services.AddSingleton<ICloudEventPubSub, CloudEventPubSub>();
     }
@@ -92,6 +98,17 @@ public class PubSubBuilder
         }
         Services.AddSingleton((sp) => registry.Build(sp));
         // registry.Debug();
+        return this;
+    }
+
+    public PubSubBuilder AddPubSubDeadLetterSender(
+        Action<PubSubDeadLetterSenderOptions> configure)
+    {
+        var services = this.Services;
+
+        services.AddSingleton<IDeadLetterSender, PubSubDeadLetterSender>();
+        services.Configure(configure);
+
         return this;
     }
 }

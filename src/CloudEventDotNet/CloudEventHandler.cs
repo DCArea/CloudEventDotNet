@@ -1,11 +1,14 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace CloudEventDotNet;
 
 internal class CloudEventHandler
 {
+    private readonly CloudEventMetadata _metadata;
     private readonly HandleCloudEventDelegate _process;
+    private readonly IServiceProvider _serviceProvider;
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly CloudEventProcessingTelemetry _telemetry;
 
@@ -13,9 +16,12 @@ internal class CloudEventHandler
         CloudEventMetadata metadata,
         HandleCloudEventDelegate handleDelegate,
         ILoggerFactory loggerFactory,
+        IServiceProvider serviceProvider,
         IServiceScopeFactory scopeFactory)
     {
+        _metadata = metadata;
         _process = handleDelegate;
+        this._serviceProvider = serviceProvider;
         _scopeFactory = scopeFactory;
         _telemetry = new CloudEventProcessingTelemetry(loggerFactory, metadata);
     }
@@ -33,6 +39,13 @@ internal class CloudEventHandler
         catch (Exception ex)
         {
             _telemetry.OnProcessingCloudEventFailed(ex, @event.Id);
+
+            var _deadLetterSender = _serviceProvider.GetService<IDeadLetterSender>();
+            if (_deadLetterSender != null)
+            {
+                await _deadLetterSender.SendAsync(_metadata, @event, ex.ToString());
+                return true;
+            }
             return false;
         }
     }

@@ -1,4 +1,4 @@
-using CloudEventDotNet.Redis;
+﻿using CloudEventDotNet.Redis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -50,7 +50,7 @@ public static class RedisPubSubBuilderExtensions
             });
             services.AddSingleton<RedisMessageChannelFactory>();
         }
-
         return builder;
     }
+
 }

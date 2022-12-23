@@ -19,7 +19,6 @@ internal sealed class RedisCloudEventPublisher : ICloudEventPublisher
         _database = _multiplexer.GetDatabase(_options.Database);
     }
 
-
     public async Task PublishAsync<TData>(string topic, CloudEvent<TData> cloudEvent)
     {
         var data = JSON.SerializeToUtf8Bytes(cloudEvent);

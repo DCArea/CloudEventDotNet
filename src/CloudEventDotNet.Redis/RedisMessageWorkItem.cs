@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using CloudEventDotNet.Redis.Instruments;
 using StackExchange.Redis;
 

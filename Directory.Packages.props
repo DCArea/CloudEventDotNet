@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Confluent.Kafka" Version="1.9.3" />
+    <PackageVersion Include="MartinCostello.Logging.XUnit" Version="0.3.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MExVersion)" />

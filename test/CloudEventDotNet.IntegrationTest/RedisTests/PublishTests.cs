@@ -9,11 +9,16 @@ using Xunit;
 namespace CloudEventDotNet.IntegrationTest.RedisTests;
 
 [CloudEvent(PubSubName = "redis")]
-public record Ping(string FA);
+public record Ping(string FA)
+{
+    public class Handler : ICloudEventHandler<Ping>
+    {
+        public Task HandleAsync(CloudEvent<Ping> cloudEvent, CancellationToken token) => Task.CompletedTask;
+    }
+}
 
 public class PublishTests
 {
-
     [Fact]
     public async Task PublishCloudEvent()
     {

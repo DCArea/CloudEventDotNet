@@ -1,4 +1,4 @@
-using CloudEventDotNet.Redis.Instruments;
+﻿using CloudEventDotNet.Redis.Instruments;
 using Microsoft.Extensions.Logging;
 
 namespace CloudEventDotNet.Redis;
@@ -27,5 +27,9 @@ internal class RedisCloudEventSubscriber : ICloudEventSubscriber
         return Task.WhenAll(_subscribers.Select(sub => sub.StartAsync()));
     }
 
-    public async Task StopAsync() => await Task.WhenAll(_subscribers!.Select(s => s.StopAsync()));
+    public async Task StopAsync()
+    {
+        await Task.WhenAll(_subscribers!.Select(s => s.StopAsync()));
+        _logger.LogDebug("Message channels stopped");
+    }
 }

@@ -1,4 +1,4 @@
-namespace CloudEventDotNet;
+﻿namespace CloudEventDotNet;
 
 /// <summary>
 /// Represents a publisher of CloudEvents.
@@ -12,4 +12,13 @@ public interface ICloudEventPubSub
     /// <param name="data">The data of the CloudEvent</param>
     /// <returns>The <see cref="Task"/> that represents the asynchronous operation, carries the published CloudEvent.</returns>
     Task<CloudEvent<TData>> PublishAsync<TData>(TData data);
+
+    /// <summary>
+    /// Publish a CloudEvent.
+    /// </summary>
+    /// <typeparam name="TData">The data type of the CloudEvent, must registered with <see cref="CloudEventAttribute"/></typeparam>
+    /// <param name="data">The data of the CloudEvent</param>
+    /// <param name="metadata">The metadata of the CloudEvent</param>
+    /// <returns>The <see cref="Task"/> that represents the asynchronous operation, carries the published CloudEvent.</returns>
+    Task<CloudEvent<TData>> PublishAsync<TData>(TData data, CloudEventMetadata metadata);
 }

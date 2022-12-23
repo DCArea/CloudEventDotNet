@@ -1,4 +1,5 @@
-using System.Threading.Channels;
+﻿using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace CloudEventDotNet.Redis;
@@ -62,6 +63,7 @@ internal sealed class RedisMessageChannelWriter
         }
         await _pollNewMessagesLoop;
         await _claimPendingMessagesLoop;
+        _telemetry.Logger.LogDebug("Writer stopped");
     }
 
     private async Task PollNewMessagesLoop()
@@ -89,7 +91,7 @@ internal sealed class RedisMessageChannelWriter
             }
             catch (Exception ex)
             {
-                if (ex is OperationCanceledException cancel && cancel.CancellationToken == _stopToken)
+                if (ex is TaskCanceledException cancel && cancel.CancellationToken == _stopToken)
                 {
                     break;
                 }
@@ -117,7 +119,7 @@ internal sealed class RedisMessageChannelWriter
             }
             catch (Exception ex)
             {
-                if (ex is OperationCanceledException cancel && cancel.CancellationToken == _stopToken)
+                if (ex is TaskCanceledException cancel && cancel.CancellationToken == _stopToken)
                 {
                     break;
                 }

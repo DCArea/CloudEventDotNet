@@ -1,4 +1,4 @@
-
+﻿
 using System.Diagnostics;
 using CloudEventDotNet.Diagnostics.Aggregators;
 using Microsoft.Extensions.Logging;
@@ -10,7 +10,7 @@ internal partial class CloudEventProcessingTelemetry
     private readonly ILogger _logger;
     private readonly CloudEventMetadata _metadata;
     private readonly HistogramAggregator _cloudEventsDeliveryLatency;
-    private static readonly HistogramAggregatorGroup s_cloudEventsDeliveryLatency;
+    internal static readonly HistogramAggregatorGroup s_cloudEventsDeliveryLatency;
     static CloudEventProcessingTelemetry()
     {
         s_cloudEventsDeliveryLatency =

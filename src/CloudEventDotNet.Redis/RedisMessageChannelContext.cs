@@ -1,4 +1,4 @@
-namespace CloudEventDotNet.Redis;
+﻿namespace CloudEventDotNet.Redis;
 
 internal sealed record RedisMessageChannelContext(
     string PubSubName,

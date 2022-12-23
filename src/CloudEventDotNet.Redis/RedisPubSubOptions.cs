@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using StackExchange.Redis;
 
 namespace CloudEventDotNet.Redis;
@@ -23,7 +23,7 @@ public abstract class RedisPubSubOptions
 public class RedisPublishOptions : RedisPubSubOptions
 {
     /// <summary>
-    /// Maximum number of items inside a stream.The old entries are automatically evicted when the specified length is reached, so that the stream is left at a constant size. Defaults to unlimited.
+    /// Maximum number of items inside a stream. The old entries are automatically evicted when the specified length is reached, so that the stream is left at a constant size. Defaults to unlimited.
     /// </summary>
     public int? MaxLength { get; set; }
 }

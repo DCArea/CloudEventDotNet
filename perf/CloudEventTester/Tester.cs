@@ -11,7 +11,8 @@ public abstract class Tester
     public Tester()
     {
         Services = new ServiceCollection()
-            .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Warning));
+            //.AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Warning));
+            .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Critical));
 
         string providerName = Environment.GetEnvironmentVariable("PROVIDER")!.ToLowerInvariant();
         if (providerName == "kafka")
@@ -26,11 +27,11 @@ public abstract class Tester
 
     public abstract Task RunAsync(string[] args);
 
-    private void ConfigureKafka()
+    protected virtual PubSubBuilder ConfigureKafka()
     {
         PubSubBuilder builder = Services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: KafkaEnv.topic)
             .Load(typeof(Ping).Assembly);
-        _ = builder.AddKafkaPubSub("kafka", options =>
+        return builder.AddKafkaPubSub("kafka", options =>
         {
             options.ProducerConfig = new ProducerConfig
             {
@@ -54,10 +55,10 @@ public abstract class Tester
         });
     }
 
-    private void ConfigureRedis()
+    protected virtual PubSubBuilder ConfigureRedis()
     {
         var redis = ConnectionMultiplexer.Connect(RedisEnv.redisConnectionString);
-        _ = Services.AddCloudEvents(defaultPubSubName: "redis", defaultTopic: RedisEnv.topic)
+        return Services.AddCloudEvents(defaultPubSubName: "redis", defaultTopic: RedisEnv.topic)
             .Load(typeof(Ping).Assembly)
             .AddRedisPubSub("redis", options =>
             {

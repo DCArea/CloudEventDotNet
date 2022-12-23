@@ -1,4 +1,4 @@
-using CloudEventDotNet.Diagnostics.Aggregators;
+﻿using CloudEventDotNet.Diagnostics.Aggregators;
 using CloudEventDotNet.Redis.Instruments;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +12,7 @@ internal sealed partial class RedisMessageTelemetry
         = new(RedisTelemetry.Meter, "dca_cloudevents_redis_message_fetched");
     private static readonly CounterAggregatorGroup s_messageClaimedCounterGroup
         = new(RedisTelemetry.Meter, "dca_cloudevents_redis_message_claimed");
-    private static readonly CounterAggregatorGroup s_workItemDispatchedCounterGroup
+    internal static readonly CounterAggregatorGroup s_workItemDispatchedCounterGroup
         = new(RedisTelemetry.Meter, "dca_cloudevents_redis_message_workitem_dispatched");
 
     private static readonly CounterAggregatorGroup s_messageAckedCounterGroup

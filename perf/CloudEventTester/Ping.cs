@@ -1,4 +1,4 @@
-using CloudEventDotNet;
+﻿using CloudEventDotNet;
 
 namespace CloudEventTester;
 

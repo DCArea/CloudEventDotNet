@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,12 +12,18 @@ internal delegate Task HandleCloudEventDelegate(IServiceProvider serviceProvider
 /// </summary>
 public sealed class Registry
 {
-    private readonly Dictionary<Type, CloudEventMetadata> _metadata = new();
-    private readonly Dictionary<CloudEventMetadata, HandleCloudEventDelegate> _handlerDelegates = new();
-    private readonly Dictionary<CloudEventMetadata, CloudEventHandler> _handlers = new();
+    internal readonly Dictionary<Type, CloudEventMetadata> _metadata = new();
+    internal readonly Dictionary<CloudEventMetadata, HandleCloudEventDelegate> _handlerDelegates = new();
+    internal readonly Dictionary<CloudEventMetadata, CloudEventHandler> _handlers = new();
     private readonly string _defaultPubSubName;
     private readonly string _defaultTopic;
     private readonly string _defaultSource;
+
+    public string DefaultPubSubName => _defaultPubSubName;
+
+    public string DefaultTopic => _defaultTopic;
+
+    public string DefaultSource => _defaultSource;
 
     /// <summary>
     /// Constructor of Registry
@@ -45,10 +51,10 @@ public sealed class Registry
     internal void RegisterMetadata(Type eventDataType, CloudEventAttribute attribute)
     {
         var metadata = new CloudEventMetadata(
-            PubSubName: attribute.PubSubName ?? _defaultPubSubName,
-            Topic: attribute.Topic ?? _defaultTopic,
+            PubSubName: attribute.PubSubName ?? DefaultPubSubName,
+            Topic: attribute.Topic ?? DefaultTopic,
             Type: attribute.Type ?? eventDataType.Name,
-            Source: attribute.Source ?? _defaultSource
+            Source: attribute.Source ?? DefaultSource
         );
         _metadata.TryAdd(eventDataType, metadata);
     }

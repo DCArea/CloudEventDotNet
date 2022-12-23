@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CloudEventDotNet;
@@ -22,10 +22,15 @@ internal sealed class CloudEventPubSub : ICloudEventPubSub
         _registry = registry;
     }
 
-    public async Task<CloudEvent<TData>> PublishAsync<TData>(TData data)
+    public Task<CloudEvent<TData>> PublishAsync<TData>(TData data)
     {
         var dataType = typeof(TData);
         var metadata = _registry.GetMetadata(dataType);
+        return PublishAsync(data, metadata);
+    }
+
+    public async Task<CloudEvent<TData>> PublishAsync<TData>(TData data, CloudEventMetadata metadata)
+    {
         var cloudEvent = new CloudEvent<TData>(
             Id: Guid.NewGuid().ToString(),
             Source: metadata.Source,
@@ -41,4 +46,5 @@ internal sealed class CloudEventPubSub : ICloudEventPubSub
         CloudEventPublishTelemetry.OnCloudEventPublished(metadata);
         return cloudEvent;
     }
+
 }
