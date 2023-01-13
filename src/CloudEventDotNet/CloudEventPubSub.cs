@@ -22,24 +22,41 @@ internal sealed class CloudEventPubSub : ICloudEventPubSub
         _registry = registry;
     }
 
-    public Task<CloudEvent<TData>> PublishAsync<TData>(TData data)
+    public Task<CloudEvent<TData>> PublishAsync<TData>(TData data,
+        string? id = null,
+        DateTimeOffset? time = null,
+        string? subject = null)
     {
         var dataType = typeof(TData);
         var metadata = _registry.GetMetadata(dataType);
-        return PublishAsync(data, metadata);
-    }
-
-    public async Task<CloudEvent<TData>> PublishAsync<TData>(TData data, CloudEventMetadata metadata)
-    {
         var cloudEvent = new CloudEvent<TData>(
-            Id: Guid.NewGuid().ToString(),
+            Id: id ?? Guid.NewGuid().ToString(),
             Source: metadata.Source,
             Type: metadata.Type,
-            Time: DateTimeOffset.UtcNow,
+            Time: time ?? DateTimeOffset.UtcNow,
             Data: data,
             DataSchema: null,
-            Subject: null
+            Subject: subject
         );
+        return PublishAsync(cloudEvent, metadata);
+    }
+
+    public Task<CloudEvent<TData>> PublishAsync<TData>(
+        CloudEvent<TData> cloudEvent,
+        string? pubsubName = null,
+        string? topic = null)
+    {
+        var metadata = new CloudEventMetadata(
+            pubsubName ?? _options.DefaultPubSubName,
+            topic ?? _options.DefaultTopic,
+            cloudEvent.Type,
+            cloudEvent.Source
+        );
+        return PublishAsync(cloudEvent, metadata);
+    }
+
+    private async Task<CloudEvent<TData>> PublishAsync<TData>(CloudEvent<TData> cloudEvent, CloudEventMetadata metadata)
+    {
         using var activity = CloudEventPublishTelemetry.OnCloudEventPublishing(metadata, cloudEvent, _logger);
         var publisher = _publishers[metadata.PubSubName];
         await publisher.PublishAsync(metadata.Topic, cloudEvent).ConfigureAwait(false);

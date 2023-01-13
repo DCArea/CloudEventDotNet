@@ -30,8 +30,15 @@ internal class PubSubDeadLetterSender : IDeadLetterSender
         {
             return;
         }
-        var deadEventMetadata = new CloudEventMetadata(_options.PubSubName!, _options.Topic!, $"dl:{metadata.Type}", _options.Source!);
         var deadLetter = new DeadLetter(metadata.PubSubName, metadata.Topic, cloudEvent, DateTimeOffset.UtcNow, deadMessage);
-        await _pubsub.PublishAsync(deadLetter, deadEventMetadata);
+        var deadLetterCloudEvent = new CloudEvent<DeadLetter>(
+            Id: "dl:" + cloudEvent.Id,
+            Source: _options.Source!,
+            Type: "dl:" + cloudEvent.Type,
+            Time: DateTimeOffset.UtcNow,
+            deadLetter,
+            null,
+            null);
+        await _pubsub.PublishAsync(deadLetterCloudEvent, _options.PubSubName, _options.Topic);
     }
 }
