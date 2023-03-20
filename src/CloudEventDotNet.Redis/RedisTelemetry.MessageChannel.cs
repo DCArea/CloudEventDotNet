@@ -71,6 +71,12 @@ internal sealed partial class RedisMessageTelemetry
     // ..
 
     [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Fetched null message on {caller}"
+    )]
+    public partial void OnNullMessageFetched(string caller);
+
+    [LoggerMessage(
         Level = LogLevel.Trace,
         Message = "Message {id} dispatched to process"
     )]
@@ -166,6 +172,12 @@ internal sealed partial class RedisMessageTelemetry
         Message = "Failed to process message {id}"
     )]
     public partial void OnProcessMessageFailed(string id, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Acked Null message"
+    )]
+    public partial void OnNullMessageAcked();
 
     // reader
     [LoggerMessage(

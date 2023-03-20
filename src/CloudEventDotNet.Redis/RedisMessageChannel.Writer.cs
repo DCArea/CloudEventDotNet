@@ -1,4 +1,5 @@
-﻿using System.Threading.Channels;
+﻿using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -176,10 +177,15 @@ internal sealed class RedisMessageChannelWriter
         }
     }
 
-    private async ValueTask DispatchMessages(StreamEntry[] messages)
+    private async ValueTask DispatchMessages(StreamEntry[] messages, [CallerMemberName]string caller = "")
     {
         foreach (StreamEntry message in messages)
         {
+            if (message.IsNull)
+            {
+                _telemetry.OnNullMessageFetched(caller);
+            }
+
             var workItem = new RedisMessageWorkItem(
                 _channelContext,
                 _workItemContext,

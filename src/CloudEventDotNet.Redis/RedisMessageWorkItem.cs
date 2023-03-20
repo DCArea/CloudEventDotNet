@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using CloudEventDotNet.Redis.Instruments;
+﻿using CloudEventDotNet.Redis.Instruments;
 using StackExchange.Redis;
 
 namespace CloudEventDotNet.Redis;
@@ -39,12 +38,16 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
     }
 
     public ValueTask WaitToCompleteAsync()
-    {
-        return _waiter.Task;
-    }
+        => _waiter.Task;
 
     internal async Task ExecuteAsync()
     {
+        if (Message.IsNull)
+        {
+            await AckAsync();
+            _context.RedisTelemetry.OnNullMessageAcked();
+        }
+
         try
         {
             var cloudEvent = JSON.Deserialize<CloudEvent>((byte[])Message["data"]!)!;
@@ -53,7 +56,7 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
             {
                 return;
             }
-            bool succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token).ConfigureAwait(false);
+            var succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token).ConfigureAwait(false);
             if (succeed)
             {
                 await _context.Redis.StreamAcknowledgeAsync(
@@ -72,5 +75,14 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
         {
             _waiter.SetResult();
         }
+    }
+
+    public async Task AckAsync()
+    {
+        await _context.Redis.StreamAcknowledgeAsync(
+            ChannelContext.Topic,
+            ChannelContext.ConsumerGroup,
+            Message.Id).ConfigureAwait(false);
+        _context.RedisTelemetry.OnMessageAcknowledged(Message.Id.ToString());
     }
 }
