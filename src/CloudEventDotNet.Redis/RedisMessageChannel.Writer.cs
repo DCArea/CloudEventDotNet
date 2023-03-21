@@ -184,6 +184,7 @@ internal sealed class RedisMessageChannelWriter
             if (message.IsNull)
             {
                 _telemetry.OnNullMessageFetched(caller);
+                continue;
             }
 
             var workItem = new RedisMessageWorkItem(

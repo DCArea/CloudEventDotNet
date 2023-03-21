@@ -42,12 +42,6 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
 
     internal async Task ExecuteAsync()
     {
-        if (Message.IsNull)
-        {
-            await AckAsync();
-            _context.RedisTelemetry.OnNullMessageAcked();
-        }
-
         try
         {
             var cloudEvent = JSON.Deserialize<CloudEvent>((byte[])Message["data"]!)!;
@@ -77,12 +71,4 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
         }
     }
 
-    public async Task AckAsync()
-    {
-        await _context.Redis.StreamAcknowledgeAsync(
-            ChannelContext.Topic,
-            ChannelContext.ConsumerGroup,
-            Message.Id).ConfigureAwait(false);
-        _context.RedisTelemetry.OnMessageAcknowledged(Message.Id.ToString());
-    }
 }
