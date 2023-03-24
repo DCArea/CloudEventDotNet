@@ -68,7 +68,7 @@ internal partial class CloudEventProcessingTelemetry
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Process CloudEvent {Id}"
+        Message = "Processed CloudEvent {Id}"
     )]
     public partial void LogOnCloudEventProcessed(string id);
 
@@ -84,5 +84,6 @@ internal partial class CloudEventProcessingTelemetry
         Message = "Failed to process CloudEvent {Id}"
     )]
     public partial void OnProcessingCloudEventFailed(Exception ex, string id);
+
 }
 

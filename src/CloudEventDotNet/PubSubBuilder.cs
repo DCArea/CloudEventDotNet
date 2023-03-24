@@ -77,7 +77,11 @@ public class PubSubBuilder
                 .GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICloudEventHandler<>))
                 .ToArray();
-            if (!handlerInterfaces.Any()) continue;
+            if (!handlerInterfaces.Any())
+            {
+                continue;
+            }
+
             foreach (var handlerInterface in handlerInterfaces)
             {
                 var eventDataType = handlerInterface.GenericTypeArguments[0];
@@ -96,7 +100,7 @@ public class PubSubBuilder
                 Services.AddScoped(handlerInterface, type);
             }
         }
-        Services.AddSingleton((sp) => registry.Build(sp));
+        Services.AddSingleton(registry.Build);
         // registry.Debug();
         return this;
     }
@@ -104,7 +108,7 @@ public class PubSubBuilder
     public PubSubBuilder AddPubSubDeadLetterSender(
         Action<PubSubDeadLetterSenderOptions> configure)
     {
-        var services = this.Services;
+        var services = Services;
 
         services.AddSingleton<IDeadLetterSender, PubSubDeadLetterSender>();
         services.Configure(configure);

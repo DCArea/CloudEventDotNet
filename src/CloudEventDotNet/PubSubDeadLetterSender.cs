@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CloudEventDotNet;
 
@@ -11,17 +12,24 @@ public class PubSubDeadLetterSenderOptions
 
 internal class PubSubDeadLetterSender : IDeadLetterSender
 {
+    private readonly ILogger _logger;
     private readonly ICloudEventPubSub _pubsub;
-    private readonly PubSubDeadLetterSenderOptions _options;
+    private readonly string _pubsubName;
+    private readonly string _topic;
+    private readonly string _source;
 
-    public PubSubDeadLetterSender(IOptions<PubSubOptions> pubSubOptions, ICloudEventPubSub pubsub, IOptions<PubSubDeadLetterSenderOptions> options)
+    public PubSubDeadLetterSender(
+        ILogger<PubSubDeadLetterSender> logger,
+        IOptions<PubSubOptions> pubSubOptions,
+        ICloudEventPubSub pubsub,
+        IOptions<PubSubDeadLetterSenderOptions> options)
     {
-        var _registry = pubSubOptions.Value;
+        _logger = logger;
         _pubsub = pubsub;
-        _options = options.Value;
-        _options.PubSubName ??= _registry.DefaultPubSubName;
-        _options.Topic ??= _registry.DefaultTopic;
-        _options.Source ??= _registry.DefaultSource;
+        var pubsubOptions = pubSubOptions.Value;
+        _pubsubName = options.Value.PubSubName ?? pubsubOptions.DefaultPubSubName;
+        _topic = options.Value.Topic ?? pubsubOptions.DefaultTopic;
+        _source = options.Value.Source ?? pubsubOptions.DefaultSource;
     }
 
     public async Task SendAsync(CloudEventMetadata metadata, CloudEvent cloudEvent, string? deadMessage)
@@ -33,12 +41,13 @@ internal class PubSubDeadLetterSender : IDeadLetterSender
         var deadLetter = new DeadLetter(metadata.PubSubName, metadata.Topic, cloudEvent, DateTimeOffset.UtcNow, deadMessage);
         var deadLetterCloudEvent = new CloudEvent<DeadLetter>(
             Id: "dl:" + cloudEvent.Id,
-            Source: _options.Source!,
+            Source: _source!,
             Type: "dl:" + cloudEvent.Type,
             Time: DateTimeOffset.UtcNow,
             deadLetter,
             null,
             null);
-        await _pubsub.PublishAsync(deadLetterCloudEvent, _options.PubSubName, _options.Topic);
+        await _pubsub.PublishAsync(deadLetterCloudEvent, _pubsubName, _topic);
+        CloudEventPublishTelemetry.OnDeadLetterSent(_logger, deadLetterCloudEvent.Id, _pubsubName!, _topic!);
     }
 }

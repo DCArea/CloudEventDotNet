@@ -9,10 +9,7 @@ namespace CloudEventDotNet;
 
 internal static partial class CloudEventPublishTelemetry
 {
-    static CloudEventPublishTelemetry()
-    {
-        s_cloudEventsPublished = new(CloudEventTelemetry.Meter, "dca_cloudevents_published");
-    }
+    static CloudEventPublishTelemetry() => s_cloudEventsPublished = new(CloudEventTelemetry.Meter, "dca_cloudevents_published");
 
 
     [LoggerMessage(
@@ -52,4 +49,9 @@ internal static partial class CloudEventPublishTelemetry
         aggregator.Add(1);
     }
 
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Sent dead letter {id} to {pubsub}:{topic}"
+    )]
+    public static partial void OnDeadLetterSent(ILogger logger, string id, string pubsub, string topic);
 }
