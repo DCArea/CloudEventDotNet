@@ -1,5 +1,6 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using CloudEventDotNet.Diagnostics;
 using CloudEventDotNet.TestEvents;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -50,8 +51,8 @@ public partial class ActivityTests
 
         var publishActivity = CloudEventPublishTelemetry.OnCloudEventPublishing(metadata, sourceEvent, new NoopLogger());
         Assert.NotNull(publishActivity);
-        Assert.Equal(publishActivity!.Id?.ToString(), sourceEvent.Extensions["traceparent"]?.ToString());
-        Assert.Equal(publishActivity.TraceStateString?.ToString(), sourceEvent.Extensions["tracestate"]?.ToString());
+        Assert.Equal(publishActivity!.Id?.ToString(), sourceEvent.Extensions["traceparent"].GetString());
+        Assert.Equal(publishActivity.TraceStateString?.ToString(), sourceEvent.Extensions["tracestate"].GetString());
         publishActivity.Stop();
         Activity.Current = null;
 
@@ -82,8 +83,8 @@ public partial class ActivityTests
             null,
             null
         );
-        sourceEvent.Extensions["traceparent"] = null;
-        sourceEvent.Extensions["tracestate"] = null;
+        sourceEvent.Extensions["traceparent"] = JsonSerializer.Deserialize<JsonElement>((JsonValue?)null);
+        sourceEvent.Extensions["tracestate"] = JsonSerializer.Deserialize<JsonElement>((JsonValue?)null);
 
         var json = JsonSerializer.Serialize(sourceEvent);
         var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(json);

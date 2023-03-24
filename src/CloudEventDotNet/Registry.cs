@@ -15,13 +15,11 @@ public sealed class Registry
     internal readonly Dictionary<Type, CloudEventMetadata> _metadata = new();
     internal readonly Dictionary<CloudEventMetadata, HandleCloudEventDelegate> _handlerDelegates = new();
     internal readonly Dictionary<CloudEventMetadata, CloudEventHandler> _handlers = new();
-    private readonly string _defaultPubSubName;
-    private readonly string _defaultTopic;
     private readonly string _defaultSource;
 
-    public string DefaultPubSubName => _defaultPubSubName;
+    public string DefaultPubSubName { get; }
 
-    public string DefaultTopic => _defaultTopic;
+    public string DefaultTopic { get; }
 
     public string DefaultSource => _defaultSource;
 
@@ -33,8 +31,8 @@ public sealed class Registry
     /// <param name="defaultSource">The default source</param>
     public Registry(string defaultPubSubName, string defaultTopic, string defaultSource)
     {
-        _defaultPubSubName = defaultPubSubName;
-        _defaultTopic = defaultTopic;
+        DefaultPubSubName = defaultPubSubName;
+        DefaultTopic = defaultTopic;
         _defaultSource = defaultSource;
     }
 
@@ -59,15 +57,9 @@ public sealed class Registry
         _metadata.TryAdd(eventDataType, metadata);
     }
 
-    internal CloudEventMetadata GetMetadata(Type eventDataType)
-    {
-        return _metadata[eventDataType];
-    }
+    internal CloudEventMetadata GetMetadata(Type eventDataType) => _metadata[eventDataType];
 
-    internal bool TryGetHandler(CloudEventMetadata metadata, [NotNullWhen(true)] out CloudEventHandler? handler)
-    {
-        return _handlers.TryGetValue(metadata, out handler);
-    }
+    internal bool TryGetHandler(CloudEventMetadata metadata, [NotNullWhen(true)] out CloudEventHandler? handler) => _handlers.TryGetValue(metadata, out handler);
 
     internal void RegisterHandler<TData>(CloudEventMetadata metadata)
     {
@@ -83,7 +75,10 @@ public sealed class Registry
                 Data: @event.Data.Deserialize<TData>(JSON.DefaultJsonSerializerOptions)!,
                 DataSchema: @event.DataSchema,
                 Subject: @event.Subject
-            );
+            )
+            {
+                Extensions = @event.Extensions
+            };
 
             return serviceProvider.GetRequiredService<ICloudEventHandler<TData>>().HandleAsync(typedEvent, token);
         }

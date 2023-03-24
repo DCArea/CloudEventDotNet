@@ -1,5 +1,7 @@
-
+﻿
 using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using CloudEventDotNet.Diagnostics.Aggregators;
 using Microsoft.Extensions.Logging;
 
@@ -36,8 +38,9 @@ internal static partial class CloudEventPublishTelemetry
                 activity.SetTag("cloudevents.event_subject", cloudEvent.Subject);
             }
             cloudEvent.Extensions ??= new();
-            cloudEvent.Extensions["traceparent"] = activity.Id;
-            cloudEvent.Extensions["tracestate"] = activity.TraceStateString;
+            cloudEvent.Extensions["traceparent"] = JsonValue.Create(activity.Id).Deserialize<JsonElement>();
+            cloudEvent.Extensions["tracestate"] = JsonValue.Create(activity.TraceStateString).Deserialize<JsonElement>();
+
         }
         return activity;
     }

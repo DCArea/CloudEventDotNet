@@ -104,5 +104,5 @@ public sealed record CloudEvent<TData>(
     /// Values for extension attributes.
     /// </summary>
     [JsonExtensionData]
-    public Dictionary<string, object?> Extensions { get; set; } = new();
+    public Dictionary<string, JsonElement> Extensions { get; set; } = new();
 }
