@@ -71,12 +71,6 @@ internal sealed partial class RedisMessageTelemetry
     // ..
 
     [LoggerMessage(
-        Level = LogLevel.Warning,
-        Message = "Fetched null message on {caller}"
-    )]
-    public partial void OnNullMessageFetched(string caller);
-
-    [LoggerMessage(
         Level = LogLevel.Trace,
         Message = "Message {id} dispatched to process"
     )]
@@ -144,7 +138,7 @@ internal sealed partial class RedisMessageTelemetry
     public partial void OnNoTimeoutedMessagesToClaim(string id, long idle, int dc);
 
     [LoggerMessage(
-        Level = LogLevel.Debug,
+        Level = LogLevel.Information,
         Message = "Claimed {count} messages"
     )]
     private partial void LogOnMessagesClaimed(int count);

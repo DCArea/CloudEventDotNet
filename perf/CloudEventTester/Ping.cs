@@ -11,6 +11,7 @@ public class PingHandler : ICloudEventHandler<Ping>
     public static long Count => s_count;
     public Task HandleAsync(CloudEvent<Ping> cloudEvent, CancellationToken token)
     {
+        //throw new NotImplementedException();
         _ = Interlocked.Increment(ref s_count);
         return Task.CompletedTask;
     }

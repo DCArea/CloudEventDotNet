@@ -173,17 +173,47 @@ internal sealed class RedisMessageChannelWriter
 
                 _telemetry.OnMessagesClaimed(claimedMessages.Length);
                 await DispatchMessages(claimedMessages).ConfigureAwait(false);
+
+                var messageToRemoveIds = messagesToClaim
+                    .Except(claimedMessages.Where(msg => !msg.IsNull).Select(msg => msg.Id));
+                await RemoveMessagesThatNoLongerExistFromPending(messageToRemoveIds);
             }
         }
     }
 
-    private async ValueTask DispatchMessages(StreamEntry[] messages, [CallerMemberName]string caller = "")
+    private async Task RemoveMessagesThatNoLongerExistFromPending(IEnumerable<RedisValue> messageIds)
+    {
+        foreach (var messageId in messageIds)
+        {
+            _telemetry.Logger.LogInformation("Claiming nil message {messageId}", messageId);
+            StreamEntry[] claimedMessages = await _database.StreamClaimAsync(
+                _channelContext.Topic,
+                _channelContext.ConsumerGroup,
+                _channelContext.ConsumerGroup,
+                (long)_options.ProcessingTimeout.TotalMilliseconds,
+                new[] { messageId }
+            ).ConfigureAwait(false);
+            if (claimedMessages.Length == 0 || claimedMessages[0].IsNull)
+            {
+                await _database.StreamAcknowledgeAsync(
+                    _channelContext.Topic,
+                    _channelContext.ConsumerGroup,
+                    messageId).ConfigureAwait(false);
+                _telemetry.Logger.LogInformation("Acked nil message {messageId}", messageId);
+            }
+            else
+            {
+                await DispatchMessages(claimedMessages);
+            }
+        }
+    }
+
+    private async ValueTask DispatchMessages(StreamEntry[] messages, [CallerMemberName] string caller = "")
     {
         foreach (StreamEntry message in messages)
         {
             if (message.IsNull)
             {
-                _telemetry.OnNullMessageFetched(caller);
                 continue;
             }
 
