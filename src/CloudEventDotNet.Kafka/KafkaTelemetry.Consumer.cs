@@ -139,15 +139,12 @@ internal sealed partial class KafkaConsumerTelemetry
     public partial void OnCommitLoopError(Exception exception);
 
     public static void OnConsumed(
+        Activity activity,
         string consumerName,
         string consumerGroup)
     {
-        var activity = Activity.Current;
-        if (activity is not null)
-        {
-            // activity.SetTag("messaging.kafka.message_key", message.Key);
-            activity.SetTag("messaging.kafka.client_id", consumerName);
-            activity.SetTag("messaging.kafka.consumer_group", consumerGroup);
-        }
+        // activity.SetTag("messaging.kafka.message_key", message.Key);
+        activity.SetTag("messaging.kafka.client_id", consumerName);
+        activity.SetTag("messaging.kafka.consumer_group", consumerGroup);
     }
 }

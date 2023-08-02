@@ -59,13 +59,14 @@ internal class KafkaMessageChannel
             _channelContext,
             _workItemContext,
             _telemetry,
-            message);
+            message,
+            DateTime.UtcNow);
 
         if (!_channel.Writer.TryWrite(workItem))
         {
             _channel.Writer.WriteAsync(workItem).AsTask().GetAwaiter().GetResult();
         }
-        //ThreadPool.UnsafeQueueUserWorkItem(workItem, false);
+        ThreadPool.UnsafeQueueUserWorkItem(workItem, false);
     }
 
     public KafkaMessageChannelReader Reader { get; }

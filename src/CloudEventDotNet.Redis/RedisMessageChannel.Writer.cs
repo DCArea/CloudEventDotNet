@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Threading.Channels;
+﻿using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -220,7 +219,8 @@ internal sealed class RedisMessageChannelWriter
             var workItem = new RedisMessageWorkItem(
                 _channelContext,
                 _workItemContext,
-                message
+                message,
+                DateTime.UtcNow
             );
             if (!_channelWriter.TryWrite(workItem))
             {

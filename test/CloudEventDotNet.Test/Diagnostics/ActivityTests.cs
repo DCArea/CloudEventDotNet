@@ -63,7 +63,7 @@ public partial class ActivityTests
         Assert.Equal(publishActivity.TraceStateString?.ToString(), cloudEvent.Extensions["tracestate"].GetString());
 
         var processTelemetry = new CloudEventProcessingTelemetry(NullLoggerFactory.Instance, metadata);
-        var processActivity = processTelemetry.OnProcessing(cloudEvent);
+        var processActivity = processTelemetry.OnProcessing(cloudEvent, DateTime.UtcNow);
         Assert.NotNull(processActivity);
 
         Assert.Equal(publishActivity!.Id?.ToString(), processActivity!.ParentId);
@@ -90,7 +90,7 @@ public partial class ActivityTests
         var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(json);
         var metadata = new CloudEventMetadata("testpubsub", "testtopic", cloudEvent!.Type, cloudEvent.Source);
         var processTelemetry = new CloudEventProcessingTelemetry(NullLoggerFactory.Instance, metadata);
-        var processActivity = processTelemetry.OnProcessing(cloudEvent);
+        var processActivity = processTelemetry.OnProcessing(cloudEvent, DateTime.UtcNow);
         Assert.NotNull(processActivity);
     }
 }

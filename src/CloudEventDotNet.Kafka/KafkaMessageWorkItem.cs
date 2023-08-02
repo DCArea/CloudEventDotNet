@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Diagnostics;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 
@@ -10,18 +10,21 @@ internal sealed class KafkaMessageWorkItem : IThreadPoolWorkItem
     private readonly KafkaWorkItemContext _context;
     private readonly KafkaMessageChannelTelemetry _telemetry;
     private readonly ConsumeResult<byte[], byte[]> _message;
+    private readonly DateTime _receivedAt;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     internal KafkaMessageWorkItem(
         KafkaMessageChannelContext channelContext,
         KafkaWorkItemContext context,
         KafkaMessageChannelTelemetry telemetry,
-        ConsumeResult<byte[], byte[]> message)
+        ConsumeResult<byte[], byte[]> message,
+        DateTime receivedAt)
     {
         _channelContext = channelContext;
         _context = context;
         _telemetry = telemetry;
         _message = message;
+        _receivedAt = receivedAt;
     }
 
     public TopicPartitionOffset TopicPartitionOffset => _message.TopicPartitionOffset;
@@ -49,6 +52,7 @@ internal sealed class KafkaMessageWorkItem : IThreadPoolWorkItem
 
     internal async Task ExecuteAsync()
     {
+        Activity? activity = null;
         try
         {
             var cloudEvent = JSON.Deserialize<CloudEvent>(_message.Message.Value)!;
@@ -58,8 +62,13 @@ internal sealed class KafkaMessageWorkItem : IThreadPoolWorkItem
                 CloudEventProcessingTelemetry.OnHandlerNotFound(_telemetry.Logger, metadata);
                 return;
             }
+
+            activity = handler.Telemetry.OnProcessing(cloudEvent, _receivedAt);
             bool succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token).ConfigureAwait(false);
-            KafkaConsumerTelemetry.OnConsumed(_channelContext.ConsumerName, _channelContext.ConsumerGroup);
+            if (activity is not null)
+            {
+                KafkaConsumerTelemetry.OnConsumed(activity, _channelContext.ConsumerName, _channelContext.ConsumerGroup);
+            }
 
             if (!succeed)
             {
@@ -68,10 +77,11 @@ internal sealed class KafkaMessageWorkItem : IThreadPoolWorkItem
         }
         catch (Exception ex)
         {
-            _telemetry.Logger.LogError(ex, "Error handling Kafka message");
+            _telemetry.Logger.LogError(ex, "Error on handling Kafka message");
         }
         finally
         {
+            activity?.Dispose();
             _waiter.SetResult();
         }
     }

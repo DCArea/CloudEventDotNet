@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace CloudEventDotNet;
@@ -26,19 +27,21 @@ internal class CloudEventHandler
         _telemetry = new CloudEventProcessingTelemetry(loggerFactory, metadata);
     }
 
+    internal CloudEventProcessingTelemetry Telemetry => _telemetry;
+
     public async Task<bool> ProcessAsync(CloudEvent @event, CancellationToken token)
     {
-        using var activity = _telemetry.OnProcessing(@event);
         try
         {
             using var scope = _scopeFactory.CreateScope();
+            var sw = ValueStopwatch.StartNew();
             await _process(scope.ServiceProvider, @event, token).ConfigureAwait(false);
-            _telemetry.OnCloudEventProcessed(@event);
+            Telemetry.OnCloudEventProcessed(@event, sw.GetElapsedTime());
             return true;
         }
         catch (Exception ex)
         {
-            _telemetry.OnProcessingCloudEventFailed(ex, @event.Id);
+            Telemetry.OnProcessingCloudEventFailed(ex, @event.Id);
 
             var _deadLetterSender = _serviceProvider.GetService<IDeadLetterSender>();
             if (_deadLetterSender != null)

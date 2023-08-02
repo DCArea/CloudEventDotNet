@@ -20,7 +20,7 @@ public class ProcessTests : RedisPubSubTestBase
         WaitUntillDelivered(pe, 3);
         await StopAsync();
 
-        var agg = CloudEventProcessingTelemetry.s_cloudEventsDeliveryLatency.FindOrCreate(tags);
+        var agg = CloudEventProcessingTelemetry.s_ProcessLatency.FindOrCreate(tags);
         Assert.Equal(1, agg.CollectCount().Value);
     }
 

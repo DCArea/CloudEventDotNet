@@ -1,4 +1,5 @@
-﻿using CloudEventDotNet.Redis.Instruments;
+﻿using System.Diagnostics;
+using CloudEventDotNet.Redis.Instruments;
 using StackExchange.Redis;
 
 namespace CloudEventDotNet.Redis;
@@ -8,15 +9,18 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly WorkItemWaiter _waiter = new();
     private readonly RedisWorkItemContext _context;
+    private readonly DateTime _receivedAt;
 
     internal RedisMessageWorkItem(
         RedisMessageChannelContext channelContext,
         RedisWorkItemContext context,
-        StreamEntry message)
+        StreamEntry message,
+        DateTime receivedAt)
     {
         _context = context;
         ChannelContext = channelContext;
         Message = message;
+        _receivedAt = receivedAt;
     }
 
     public RedisMessageChannelContext ChannelContext { get; }
@@ -42,6 +46,7 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
 
     internal async Task ExecuteAsync()
     {
+        Activity? activity = null;
         try
         {
             var cloudEvent = JSON.Deserialize<CloudEvent>((byte[])Message["data"]!)!;
@@ -50,6 +55,8 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
             {
                 return;
             }
+
+            activity = handler.Telemetry.OnProcessing(cloudEvent, _receivedAt);
             var succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token).ConfigureAwait(false);
             if (succeed)
             {
@@ -59,7 +66,12 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
                     Message.Id).ConfigureAwait(false);
                 _context.RedisTelemetry.OnMessageAcknowledged(Message.Id.ToString());
             }
-            RedisTelemetry.OnMessageProcessed(ChannelContext.ConsumerGroup, ChannelContext.ConsumerName);
+
+            if (activity is not null)
+            {
+                RedisTelemetry.OnMessageProcessed(ChannelContext.ConsumerGroup, ChannelContext.ConsumerName);
+            }
+
         }
         catch (Exception ex)
         {
@@ -67,6 +79,7 @@ internal sealed class RedisMessageWorkItem : IThreadPoolWorkItem
         }
         finally
         {
+            activity?.Dispose();
             _waiter.SetResult();
         }
     }

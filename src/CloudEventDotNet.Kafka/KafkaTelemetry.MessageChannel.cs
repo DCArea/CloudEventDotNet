@@ -1,15 +1,23 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CloudEventDotNet.Diagnostics.Aggregators;
+using Microsoft.Extensions.Logging;
 
 namespace CloudEventDotNet.Kafka;
 
 internal partial class KafkaMessageChannelTelemetry
 {
+
     private readonly ILogger _logger;
+    private readonly HistogramAggregator _deliveryLatency;
+    private readonly HistogramAggregator _dispatchLatency;
+
     public KafkaMessageChannelTelemetry(
         ILoggerFactory loggerFactory,
         KafkaMessageChannelContext context)
     {
         _logger = loggerFactory.CreateLogger($"{nameof(KafkaMessageChannelTelemetry)}:{context.PubSubName}:{context.TopicPartition.Topic}:{context.TopicPartition.Partition.Value}");
+
+        _deliveryLatency = CloudEventProcessingTelemetry.s_DeliveryLatency.FindOrCreate(new("pubsub", context.PubSubName, "topic", context.TopicPartition.Topic));
+        _dispatchLatency = CloudEventProcessingTelemetry.s_DispatchLatency.FindOrCreate(new("pubsub", context.PubSubName, "topic", context.TopicPartition.Topic));
     }
 
     public ILogger Logger => _logger;
@@ -65,5 +73,4 @@ internal partial class KafkaMessageChannelTelemetry
         Level = LogLevel.Trace,
         Message = "Checked offset {offset}")]
     public partial void OnOffsetChecked(long offset);
-
 }
