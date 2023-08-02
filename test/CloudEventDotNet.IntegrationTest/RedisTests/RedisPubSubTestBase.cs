@@ -3,9 +3,7 @@ using System.Threading.Channels;
 using FakeItEasy;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace CloudEventDotNet.IntegrationTest.RedisTests;
@@ -13,14 +11,11 @@ namespace CloudEventDotNet.IntegrationTest.RedisTests;
 public class RedisPubSubTestBase
 {
     public const string PubsubName = "redis";
-    public RedisPubSubTestBase(ITestOutputHelper output)
+    public RedisPubSubTestBase()
     {
         var services = new ServiceCollection();
+        services.AddLogging();
         services.AddSingleton(DeliveredCloudEvents);
-        services.AddLogging(log =>
-        {
-            //log.AddXUnit(output).SetMinimumLevel(LogLevel.Trace);
-        });
         var redisConn = A.Fake<IConnectionMultiplexer>();
         var redisDb = A.Fake<IDatabase>();
         A.CallTo(() => redisConn.GetDatabase(A<int>.Ignored, A<object?>.Ignored)).Returns(redisDb);

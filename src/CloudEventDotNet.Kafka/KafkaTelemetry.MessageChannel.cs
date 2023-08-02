@@ -1,13 +1,10 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 
 namespace CloudEventDotNet.Kafka;
 
 internal partial class KafkaMessageChannelTelemetry
 {
-#pragma warning disable IDE0032 // Use auto property
     private readonly ILogger _logger;
-#pragma warning restore IDE0032 // Use auto property
-
     public KafkaMessageChannelTelemetry(
         ILoggerFactory loggerFactory,
         KafkaMessageChannelContext context)

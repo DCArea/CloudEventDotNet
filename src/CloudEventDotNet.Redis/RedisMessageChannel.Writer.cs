@@ -208,7 +208,7 @@ internal sealed class RedisMessageChannelWriter
         }
     }
 
-    private async ValueTask DispatchMessages(StreamEntry[] messages, [CallerMemberName] string caller = "")
+    private async ValueTask DispatchMessages(StreamEntry[] messages)
     {
         foreach (StreamEntry message in messages)
         {

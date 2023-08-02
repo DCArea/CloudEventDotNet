@@ -4,8 +4,6 @@ using Microsoft.Extensions.Logging;
 
 namespace CloudEventDotNet.Redis;
 
-#pragma warning disable IDE0032
-
 internal sealed partial class RedisMessageTelemetry
 {
     private static readonly CounterAggregatorGroup s_newMessageFetchedCounterGroup

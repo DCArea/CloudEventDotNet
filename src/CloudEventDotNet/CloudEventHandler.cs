@@ -21,7 +21,7 @@ internal class CloudEventHandler
     {
         _metadata = metadata;
         _process = handleDelegate;
-        this._serviceProvider = serviceProvider;
+        _serviceProvider = serviceProvider;
         _scopeFactory = scopeFactory;
         _telemetry = new CloudEventProcessingTelemetry(loggerFactory, metadata);
     }

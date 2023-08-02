@@ -1,4 +1,4 @@
-using System.Threading.Channels;
+﻿using System.Threading.Channels;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 

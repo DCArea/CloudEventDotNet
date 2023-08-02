@@ -4,8 +4,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <DefaultTargetFramework>net6.0</DefaultTargetFramework>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <DefaultTargetFramework>net6.0;net7.0</DefaultTargetFramework>
+    <TargetFrameworks>$(DefaultTargetFramework)</TargetFrameworks>
     <VersionPrefix>0.1.0</VersionPrefix>
   </PropertyGroup>
 

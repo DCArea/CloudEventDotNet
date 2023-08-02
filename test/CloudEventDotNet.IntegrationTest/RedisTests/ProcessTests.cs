@@ -8,10 +8,6 @@ namespace CloudEventDotNet.IntegrationTest.RedisTests;
 
 public class ProcessTests : RedisPubSubTestBase
 {
-    public ProcessTests(ITestOutputHelper output) : base(output)
-    {
-    }
-
     [Fact]
     public async Task Subscribe()
     {
