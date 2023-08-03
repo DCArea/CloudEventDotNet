@@ -29,7 +29,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudEventDotNet.Redis", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudEventDotNet.Kafka", "src\CloudEventDotNet.Kafka\CloudEventDotNet.Kafka.csproj", "{25324249-21DF-43D1-BDD1-052DF2EB0A1B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudEventDotNet.IntegrationTest", "test\CloudEventDotNet.IntegrationTest\CloudEventDotNet.IntegrationTest.csproj", "{19B10A8E-98B0-45CB-9E5C-AA79B4F6F1CA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudEventDotNet.IntegrationTest", "test\CloudEventDotNet.IntegrationTest\CloudEventDotNet.IntegrationTest.csproj", "{19B10A8E-98B0-45CB-9E5C-AA79B4F6F1CA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{EC0C8CC6-78AB-4503-A5B1-367A023004EE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{2F7169D8-DB87-4B00-B6CA-AB828534DB16}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\ci.yaml = .github\workflows\ci.yaml
+		.github\workflows\release.yaml = .github\workflows\release.yaml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -72,6 +80,7 @@ Global
 		{67387C1D-8F53-4136-96EB-2D1FFC94146E} = {46081377-335F-4C1A-BEA6-C8EEA413512C}
 		{25324249-21DF-43D1-BDD1-052DF2EB0A1B} = {46081377-335F-4C1A-BEA6-C8EEA413512C}
 		{19B10A8E-98B0-45CB-9E5C-AA79B4F6F1CA} = {FD67BF13-67BD-4217-89ED-93C5E36C8039}
+		{2F7169D8-DB87-4B00-B6CA-AB828534DB16} = {EC0C8CC6-78AB-4503-A5B1-367A023004EE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C3CD9CCD-5AB1-4267-80AC-2E1A23409FA7}
