@@ -1,4 +1,4 @@
-using Confluent.Kafka;
+﻿using Confluent.Kafka;
 
 namespace CloudEventDotNet;
 
@@ -24,17 +24,7 @@ public class KafkaSubscribeOptions
     public ConsumerConfig ConsumerConfig { get; set; } = new ConsumerConfig();
 
     /// <summary>
-    /// Delivery guarantee, defaults to AtMostOnce delivery.
-    /// </summary>
-    public DeliveryGuarantee DeliveryGuarantee { get; set; } = DeliveryGuarantee.AtMostOnce;
-
-    /// <summary>
-    /// The limit of unprocessed CloudEvents in local process queue.
+    /// The limit of unprocessed CloudEvents in local process queue. Defaults to 1024.
     /// </summary>
     public int RunningWorkItemLimit { get; set; } = 1024;
-}
-
-public enum DeliveryGuarantee
-{
-    AtMostOnce, AtLeastOnce
 }

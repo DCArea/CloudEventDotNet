@@ -6,7 +6,7 @@ using System;
 
 namespace System.Diagnostics;
 
-internal struct ValueStopwatch
+internal readonly struct ValueStopwatch
 {
 #if !NET7_0_OR_GREATER
     private static readonly double TimestampToTicks = TimeSpan.TicksPerSecond / (double)Stopwatch.Frequency;
@@ -21,7 +21,7 @@ internal struct ValueStopwatch
         _startTimestamp = startTimestamp;
     }
 
-    public static ValueStopwatch StartNew() => new ValueStopwatch(Stopwatch.GetTimestamp());
+    public static ValueStopwatch StartNew() => new(Stopwatch.GetTimestamp());
 
     public TimeSpan GetElapsedTime()
     {

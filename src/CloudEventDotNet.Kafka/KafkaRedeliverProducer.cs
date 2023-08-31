@@ -1,17 +1,23 @@
-
+﻿
+using CloudEventDotNet.Kafka.Telemetry;
 using Confluent.Kafka;
+using Microsoft.Extensions.Logging;
 
 namespace CloudEventDotNet.Kafka;
 
-internal class KafkaRedeliverProducer
+internal sealed class KafkaRedeliverProducer
 {
     private readonly IProducer<byte[], byte[]> _producer;
+    private readonly ILogger<KafkaRedeliverProducer> _logger;
 
     public KafkaRedeliverProducer(
         KafkaSubscribeOptions options,
-        KafkaConsumerTelemetry telemetry
+        ILogger<KafkaRedeliverProducer> logger,
+        IKafkaProducerFactory producerFactory
     )
     {
+        _logger = logger;
+
         var producerConfig = new ProducerConfig()
         {
             BootstrapServers = options.ConsumerConfig.BootstrapServers,
@@ -19,15 +25,11 @@ internal class KafkaRedeliverProducer
             LingerMs = 10
         };
 
-        _producer = new ProducerBuilder<byte[], byte[]>(producerConfig)
-            .SetErrorHandler((_, e) => telemetry.OnProducerError(e))
-            .SetLogHandler((_, log) => telemetry.OnProducerLog(log))
-            .Build();
+        _producer = producerFactory.Create<byte[], byte[]>(producerConfig,
+            errorHandler: (_, e) => Logs.ProducerError(_logger, e),
+            logHandler: (_, log) => Logs.OnProducerLog(_logger, log));
     }
 
     public Task ReproduceAsync(ConsumeResult<byte[], byte[]> consumeResult)
-    {
-        return _producer.ProduceAsync(consumeResult.Topic, consumeResult.Message);
-    }
-
+        => _producer.ProduceAsync(consumeResult.Topic, consumeResult.Message);
 }

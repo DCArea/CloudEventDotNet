@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -29,7 +29,6 @@ public class SubscribeHostedService : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting subscribers");
-        var tasks = new List<Task>();
         await Task.WhenAll(_subscribers.Select(s => s.StartAsync()));
         _logger.LogInformation("Started subscribers");
     }

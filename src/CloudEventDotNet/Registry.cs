@@ -14,14 +14,13 @@ public sealed class Registry
 {
     internal readonly Dictionary<Type, CloudEventMetadata> _metadata = new();
     internal readonly Dictionary<CloudEventMetadata, HandleCloudEventDelegate> _handlerDelegates = new();
-    internal readonly Dictionary<CloudEventMetadata, CloudEventHandler> _handlers = new();
-    private readonly string _defaultSource;
+    internal readonly Dictionary<CloudEventMetadata, ICloudEventHandler> _handlers = new();
 
     public string DefaultPubSubName { get; }
 
     public string DefaultTopic { get; }
 
-    public string DefaultSource => _defaultSource;
+    public string DefaultSource { get; }
 
     /// <summary>
     /// Constructor of Registry
@@ -33,15 +32,15 @@ public sealed class Registry
     {
         DefaultPubSubName = defaultPubSubName;
         DefaultTopic = defaultTopic;
-        _defaultSource = defaultSource;
+        DefaultSource = defaultSource;
     }
 
     internal Registry Build(IServiceProvider services)
     {
+        var factory = services.GetRequiredService<ICloudEventHandlerFactory>();
         foreach (var (metadata, handlerDelegate) in _handlerDelegates)
         {
-            var handler = ActivatorUtilities.CreateInstance<CloudEventHandler>(services, metadata, handlerDelegate);
-            _handlers.TryAdd(metadata, handler);
+            _handlers.TryAdd(metadata, factory.Create(services, metadata, handlerDelegate));
         }
         return this;
     }
@@ -59,7 +58,7 @@ public sealed class Registry
 
     internal CloudEventMetadata GetMetadata(Type eventDataType) => _metadata[eventDataType];
 
-    internal bool TryGetHandler(CloudEventMetadata metadata, [NotNullWhen(true)] out CloudEventHandler? handler) => _handlers.TryGetValue(metadata, out handler);
+    internal bool TryGetHandler(CloudEventMetadata metadata, [NotNullWhen(true)] out ICloudEventHandler? handler) => _handlers.TryGetValue(metadata, out handler);
 
     internal void RegisterHandler<TData>(CloudEventMetadata metadata)
     {

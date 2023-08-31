@@ -19,11 +19,4 @@ internal static class KafkaEnv
         "earliest" => AutoOffsetReset.Earliest,
         _ => AutoOffsetReset.Latest
     };
-
-    public static DeliveryGuarantee deliveryGuarantee { get; set; } = Environment.GetEnvironmentVariable("KAFKA_DELIVERY_GUARANTEE") switch
-    {
-        "at_least_once" => DeliveryGuarantee.AtLeastOnce,
-        "at_most_once" => DeliveryGuarantee.AtMostOnce,
-        _ => DeliveryGuarantee.AtLeastOnce
-    };
 }

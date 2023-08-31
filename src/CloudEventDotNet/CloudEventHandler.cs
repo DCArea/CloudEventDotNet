@@ -1,33 +1,39 @@
 ﻿using System.Diagnostics;
+using CloudEventDotNet.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace CloudEventDotNet;
 
-internal class CloudEventHandler
+public interface ICloudEventHandler
+{
+    Task<bool> ProcessAsync(CloudEvent @event, CancellationToken token);
+}
+
+internal sealed class CloudEventHandler : ICloudEventHandler
 {
     private readonly CloudEventMetadata _metadata;
     private readonly HandleCloudEventDelegate _process;
     private readonly IServiceProvider _serviceProvider;
-
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly CloudEventProcessingTelemetry _telemetry;
+    private readonly CloudEventMetricsContext _metrics;
+    private readonly CloudEventLogger _logger;
 
     public CloudEventHandler(
         CloudEventMetadata metadata,
         HandleCloudEventDelegate handleDelegate,
-        ILoggerFactory loggerFactory,
         IServiceProvider serviceProvider,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        ILogger<CloudEventHandler> logger)
     {
         _metadata = metadata;
         _process = handleDelegate;
         _serviceProvider = serviceProvider;
         _scopeFactory = scopeFactory;
-        _telemetry = new CloudEventProcessingTelemetry(loggerFactory, metadata);
-    }
+        _metrics = new CloudEventMetricsContext(metadata.PubSubName, metadata.Topic, metadata.Type);
+        _logger = new CloudEventLogger(logger, metadata);
 
-    internal CloudEventProcessingTelemetry Telemetry => _telemetry;
+    }
 
     public async Task<bool> ProcessAsync(CloudEvent @event, CancellationToken token)
     {
@@ -35,13 +41,17 @@ internal class CloudEventHandler
         {
             using var scope = _scopeFactory.CreateScope();
             var sw = ValueStopwatch.StartNew();
+            _metrics.CloudEventProcessing(@event);
             await _process(scope.ServiceProvider, @event, token).ConfigureAwait(false);
-            Telemetry.OnCloudEventProcessed(@event, sw.GetElapsedTime());
+            _logger.CloudEventProcessed(@event.Id);
+            _metrics.CloudEventProcessed(sw.GetElapsedTime());
+            Activity.Current?.SetStatus(ActivityStatusCode.Ok);
             return true;
         }
         catch (Exception ex)
         {
-            Telemetry.OnProcessingCloudEventFailed(ex, @event.Id);
+            _logger.CloudEventProcessFailed(ex, @event.Id);
+            Activity.Current?.SetStatus(ActivityStatusCode.Error, $"Exception: {ex.GetType().Name}");
 
             var _deadLetterSender = _serviceProvider.GetService<IDeadLetterSender>();
             if (_deadLetterSender != null)

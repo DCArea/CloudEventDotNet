@@ -1,4 +1,4 @@
-using CloudEventDotNet.Kafka;
+﻿using CloudEventDotNet.Kafka;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -23,6 +23,7 @@ public static class KafkaPubSubBuilderExtensions
 
         if (configurePublish is not null)
         {
+            services.AddSingleton<IKafkaProducerFactory, KafkaProducerFactory>();
             services.Configure<KafkaPublishOptions>(name, configurePublish);
             services.Configure<PubSubOptions>(options =>
             {
@@ -38,6 +39,7 @@ public static class KafkaPubSubBuilderExtensions
 
         if (configureSubscribe is not null)
         {
+            services.AddSingleton<IKafkaConsumerFactory, KafkaConsumerFactory>();
             services.Configure<KafkaSubscribeOptions>(name, configureSubscribe);
             services.Configure<PubSubOptions>(options =>
             {
@@ -45,14 +47,8 @@ public static class KafkaPubSubBuilderExtensions
                 {
                     var optionsFactory = sp.GetRequiredService<IOptionsFactory<KafkaSubscribeOptions>>();
                     var options = optionsFactory.Create(name);
-                    return options.DeliveryGuarantee switch
-                    {
-                        DeliveryGuarantee.AtMostOnce
-                            => ActivatorUtilities.CreateInstance<KafkaAtMostOnceConsumer>(sp, name, options),
-                        DeliveryGuarantee.AtLeastOnce
-                            => ActivatorUtilities.CreateInstance<KafkaAtLeastOnceConsumer>(sp, name, options),
-                        _ => throw new NotImplementedException(),
-                    };
+
+                    return ActivatorUtilities.CreateInstance<KafkaCloudEventSubscriber>(sp, name, options);
                 }
                 options.SubscriberFactoris[name] = factory;
             });

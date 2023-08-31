@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="DCA.Extensions.BackgroundTask" />
   </ItemGroup>
 
   <ItemGroup>

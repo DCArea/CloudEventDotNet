@@ -36,6 +36,7 @@ public class PubSubBuilder
         });
         services.AddHostedService<SubscribeHostedService>();
         services.AddSingleton<ICloudEventPubSub, CloudEventPubSub>();
+        services.AddSingleton<ICloudEventHandlerFactory, CloudEventHandlerFactory>();
     }
 
     /// <summary>
@@ -43,6 +44,8 @@ public class PubSubBuilder
     /// from the dependency injection container.
     /// </summary>
     public IServiceCollection Services { get; }
+
+    internal Registry? Registry { get; set; }
 
     /// <summary>
     /// Load cloudevents metadata from specifed assemblies.
@@ -58,7 +61,7 @@ public class PubSubBuilder
             throw new ArgumentException("No assemblies found to scan. Supply at least one assembly to scan for handlers.");
         }
 
-        var registry = new Registry(_defaultPubSubName, _defaultTopic, _defaultSource);
+        Registry = new Registry(_defaultPubSubName, _defaultTopic, _defaultSource);
         foreach (var type in assemblies.SelectMany(a => a.DefinedTypes))
         {
             var typeInfo = type.GetTypeInfo();
@@ -69,7 +72,7 @@ public class PubSubBuilder
 
             if (type.GetCustomAttribute<CloudEventAttribute>() is CloudEventAttribute attribute)
             {
-                registry.RegisterMetadata(type, attribute);
+                Registry.RegisterMetadata(type, attribute);
                 continue;
             }
 
@@ -87,7 +90,7 @@ public class PubSubBuilder
                 var eventDataType = handlerInterface.GenericTypeArguments[0];
                 if (eventDataType.GetCustomAttribute<CloudEventAttribute>() is CloudEventAttribute attribute2)
                 {
-                    registry.RegisterMetadata(eventDataType, attribute2);
+                    Registry.RegisterMetadata(eventDataType, attribute2);
                 }
                 else
                 {
@@ -96,12 +99,11 @@ public class PubSubBuilder
                 typeof(Registry)
                     .GetMethod(nameof(Registry.RegisterHandler), BindingFlags.NonPublic | BindingFlags.Instance)!
                     .MakeGenericMethod(eventDataType)!
-                    .Invoke(registry, new[] { (object)registry.GetMetadata(eventDataType) });
+                    .Invoke(Registry, new[] { (object)Registry.GetMetadata(eventDataType) });
                 Services.AddScoped(handlerInterface, type);
             }
         }
-        Services.AddSingleton(registry.Build);
-        // registry.Debug();
+        Services.AddSingleton(Registry.Build);
         return this;
     }
 

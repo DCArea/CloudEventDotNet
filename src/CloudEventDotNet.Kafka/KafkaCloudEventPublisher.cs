@@ -1,6 +1,6 @@
-using System.Text.Json;
+﻿using CloudEventDotNet.Kafka;
+using CloudEventDotNet.Kafka.Telemetry;
 using Confluent.Kafka;
-using CloudEventDotNet.Kafka;
 using Microsoft.Extensions.Logging;
 
 namespace CloudEventDotNet;
@@ -8,18 +8,20 @@ namespace CloudEventDotNet;
 internal sealed class KafkaCloudEventPublisher : ICloudEventPublisher
 {
     private readonly IProducer<byte[], byte[]> _producer;
-    private readonly KafkaProducerTelemetry _telemetry;
+    private readonly string _pubSubName;
+    private readonly ILogger<KafkaCloudEventPublisher> _logger;
 
     public KafkaCloudEventPublisher(
         string pubSubName,
         KafkaPublishOptions options,
-        ILoggerFactory loggerFactory)
+        ILogger<KafkaCloudEventPublisher> logger,
+        IKafkaProducerFactory producerFactory)
     {
-        _telemetry = new KafkaProducerTelemetry(pubSubName, loggerFactory);
-        _producer = new ProducerBuilder<byte[], byte[]>(options.ProducerConfig)
-            .SetErrorHandler((_, e) => _telemetry.OnProducerError(e))
-            .SetLogHandler((_, log) => _telemetry.OnProducerLog(log))
-            .Build();
+        _pubSubName = pubSubName;
+        _logger = logger;
+        _producer = producerFactory.Create<byte[], byte[]>(options.ProducerConfig,
+            (_, e) => Logs.ProducerError(_logger, e),
+            (_, log) => Logs.OnProducerLog(_logger, log));
     }
 
     public async Task PublishAsync<TData>(string topic, CloudEvent<TData> cloudEvent)
@@ -29,7 +31,11 @@ internal sealed class KafkaCloudEventPublisher : ICloudEventPublisher
             Value = JSON.SerializeToUtf8Bytes(cloudEvent)
         };
 
-        DeliveryResult<byte[], byte[]> result = await _producer.ProduceAsync(topic, message).ConfigureAwait(false);
-        _telemetry.OnMessageProduced(result, _producer.Name);
+        var result = await _producer
+            .ProduceAsync(topic, message)
+            .ConfigureAwait(false);
+
+        Logs.MessageProduced(_logger, _pubSubName, topic, result.Partition, result.Offset);
+        Tracing.OnMessageProduced(result, _producer.Name);
     }
 }

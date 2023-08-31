@@ -1,8 +1,8 @@
-using Confluent.Kafka;
+﻿using Confluent.Kafka;
 
 namespace CloudEventDotNet.Kafka;
 
-internal record KafkaMessageChannelContext(
+internal record struct KafkaMessageChannelContext(
     string PubSubName,
     string ConsumerName,
     string ConsumerGroup,

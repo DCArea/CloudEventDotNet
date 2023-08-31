@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CloudEventDotNet.Telemetry;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CloudEventDotNet;
@@ -48,6 +49,6 @@ internal class PubSubDeadLetterSender : IDeadLetterSender
             null,
             null);
         await _pubsub.PublishAsync(deadLetterCloudEvent, _pubsubName, _topic);
-        CloudEventPublishTelemetry.OnDeadLetterSent(_logger, deadLetterCloudEvent.Id, _pubsubName!, _topic!);
+        Logs.DeadLetterSent(_logger, _pubsubName, _topic, deadLetterCloudEvent.Type, deadLetterCloudEvent.Id);
     }
 }

@@ -28,6 +28,7 @@ public class RedisPubSubTestBase
             {
                 opts.ConnectionMultiplexerFactory = () => redisConn;
                 opts.ConsumerGroup = "Test";
+                opts.RunningWorkItemLimit = 8;
             })
             .AddPubSubDeadLetterSender(opts =>
             {
@@ -117,7 +118,8 @@ public class RedisPubSubTestBase
         {
             stream.Writer.Complete();
         }
-        await Subscriber.StopAsync(default).WaitAsync(TimeSpan.FromSeconds(10));
+        await Subscriber.StopAsync(default)
+            .WaitAsync(TimeSpan.FromSeconds(10));
     }
 
     [StackTraceHidden]

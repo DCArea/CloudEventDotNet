@@ -1,9 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using CloudEventDotNet.Diagnostics;
+using CloudEventDotNet.Telemetry;
 using CloudEventDotNet.TestEvents;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CloudEventDotNet.Test.Diagnostics;
 public partial class ActivityTests
@@ -49,7 +48,7 @@ public partial class ActivityTests
         );
         var metadata = new CloudEventMetadata("testpubsub", "testtopic", sourceEvent!.Type, sourceEvent.Source);
 
-        var publishActivity = CloudEventPublishTelemetry.OnCloudEventPublishing(metadata, sourceEvent, new NoopLogger());
+        var publishActivity = Tracing.CloudEventPublishing(metadata.PubSubName, metadata.Topic, sourceEvent);
         Assert.NotNull(publishActivity);
         Assert.Equal(publishActivity!.Id?.ToString(), sourceEvent.Extensions["traceparent"].GetString());
         Assert.Equal(publishActivity.TraceStateString?.ToString(), sourceEvent.Extensions["tracestate"].GetString());
@@ -62,8 +61,7 @@ public partial class ActivityTests
         Assert.Equal(publishActivity!.Id?.ToString(), cloudEvent!.Extensions["traceparent"].GetString());
         Assert.Equal(publishActivity.TraceStateString?.ToString(), cloudEvent.Extensions["tracestate"].GetString());
 
-        var processTelemetry = new CloudEventProcessingTelemetry(NullLoggerFactory.Instance, metadata);
-        var processActivity = processTelemetry.OnProcessing(cloudEvent, DateTime.UtcNow);
+        var processActivity = Tracing.OnProcessing(metadata.PubSubName, metadata.Topic, cloudEvent);
         Assert.NotNull(processActivity);
 
         Assert.Equal(publishActivity!.Id?.ToString(), processActivity!.ParentId);
@@ -73,7 +71,6 @@ public partial class ActivityTests
     [Fact]
     public void ShouldIgnoreNullTraceContext()
     {
-        // var traceParentId = new Activity("test").Id;
         var sourceEvent = new CloudEvent<SimpleEvent>(
             Id: Guid.NewGuid().ToString(),
             Source: "testsource",
@@ -89,8 +86,7 @@ public partial class ActivityTests
         var json = JsonSerializer.Serialize(sourceEvent);
         var cloudEvent = JsonSerializer.Deserialize<CloudEvent>(json);
         var metadata = new CloudEventMetadata("testpubsub", "testtopic", cloudEvent!.Type, cloudEvent.Source);
-        var processTelemetry = new CloudEventProcessingTelemetry(NullLoggerFactory.Instance, metadata);
-        var processActivity = processTelemetry.OnProcessing(cloudEvent, DateTime.UtcNow);
+        var processActivity = Tracing.OnProcessing(metadata.PubSubName, metadata.Topic, cloudEvent);
         Assert.NotNull(processActivity);
     }
 }

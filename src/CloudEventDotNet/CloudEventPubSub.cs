@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CloudEventDotNet.Telemetry;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CloudEventDotNet;
@@ -57,10 +58,14 @@ internal sealed class CloudEventPubSub : ICloudEventPubSub
 
     private async Task<CloudEvent<TData>> PublishAsync<TData>(CloudEvent<TData> cloudEvent, CloudEventMetadata metadata)
     {
-        using var activity = CloudEventPublishTelemetry.OnCloudEventPublishing(metadata, cloudEvent, _logger);
+        using var activity = Tracing.CloudEventPublishing(metadata.PubSubName, metadata.Topic, cloudEvent);
+
         var publisher = _publishers[metadata.PubSubName];
         await publisher.PublishAsync(metadata.Topic, cloudEvent).ConfigureAwait(false);
-        CloudEventPublishTelemetry.OnCloudEventPublished(metadata);
+
+        Logs.CloudEventPublished(_logger, metadata.PubSubName, metadata.Topic, metadata.Type, cloudEvent.Id);
+        Metrics.CloudEventPublished(metadata);
+
         return cloudEvent;
     }
 

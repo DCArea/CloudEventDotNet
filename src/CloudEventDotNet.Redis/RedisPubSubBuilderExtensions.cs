@@ -31,7 +31,7 @@ public static class RedisPubSubBuilderExtensions
                 {
                     var optionsFactory = sp.GetRequiredService<IOptionsFactory<RedisPublishOptions>>();
                     var options = optionsFactory.Create(name);
-                    return ActivatorUtilities.CreateInstance<RedisCloudEventPublisher>(sp, options);
+                    return ActivatorUtilities.CreateInstance<RedisCloudEventPublisher>(sp, name, options);
                 }
                 options.PublisherFactoris[name] = factory;
             });
@@ -44,11 +44,12 @@ public static class RedisPubSubBuilderExtensions
             {
                 ICloudEventSubscriber factory(IServiceProvider sp)
                 {
-                    return ActivatorUtilities.CreateInstance<RedisCloudEventSubscriber>(sp, name);
+                    var optionsFactory = sp.GetRequiredService<IOptionsFactory<RedisSubscribeOptions>>();
+                    var options = optionsFactory.Create(name);
+                    return ActivatorUtilities.CreateInstance<RedisCloudEventSubscriber>(sp, name, options);
                 }
                 options.SubscriberFactoris[name] = factory;
             });
-            services.AddSingleton<RedisMessageChannelFactory>();
         }
         return builder;
     }

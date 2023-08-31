@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace CloudEventDotNet;
 
-internal record CloudEvent(
+public record CloudEvent(
     [property: JsonPropertyName("id")]
     string Id,
     [property: JsonPropertyName("source")]

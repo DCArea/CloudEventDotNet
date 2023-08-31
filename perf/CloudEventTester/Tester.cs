@@ -11,9 +11,10 @@ public abstract class Tester
     public Tester()
     {
         Services = new ServiceCollection()
-            .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
-        //.AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Warning));
-        //.AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Critical));
+            .AddLogging(logging => logging.AddConsole()
+                // .AddFilter("DCA.Extensions.BackgroundTask", LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Warning)
+            );
 
         string providerName = Environment.GetEnvironmentVariable("PROVIDER")!.ToLowerInvariant();
         if (providerName == "kafka")
@@ -52,7 +53,6 @@ public abstract class Tester
                 FetchWaitMaxMs = 1_000
             };
             options.RunningWorkItemLimit = KafkaEnv.runningWorkItemLimit;
-            options.DeliveryGuarantee = KafkaEnv.deliveryGuarantee;
         });
     }
 
