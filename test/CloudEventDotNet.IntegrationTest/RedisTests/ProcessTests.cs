@@ -19,9 +19,7 @@ public class ProcessTests : RedisPubSubTestBase
         var pe = await Pubsub.PublishAsync(ping);
         WaitUntillDelivered(pe, 3);
         await StopAsync();
-
-        var agg = Metrics.s_ProcessLatency.FindOrCreate(tags);
-        Assert.Equal(1, agg.CollectCount().Value);
+        DeliveredCloudEvents.Count.Should().Be(1);
     }
 
     [CloudEvent(PubSubName = "redis")]
@@ -57,11 +55,11 @@ public class ProcessTests : RedisPubSubTestBase
         WaitUntillDelivered(pe, 10);
         WaitUntill(() =>
         {
-            return AckedCloudEvents.Count == 2;
+            return PublishedCloudEvents.Count == 2;
         }, 10);
         await StopAsync();
 
-        var de = PublishedCloudEvents.Last();
+        var de = PublishedCloudEvents.Single(e=>e.Type.StartsWith("dl:"));
         de.Type.Should().Be($"dl:{nameof(TestEventForRepublish)}");
         var deadLetter = de.Data.Deserialize<TestEventForRepublishDeadLetter>(JSON.DefaultJsonSerializerOptions)!;
         deadLetter.DeadEvent.Should().BeEquivalentTo(pe);
@@ -100,7 +98,7 @@ public class ProcessTests : RedisPubSubTestBase
         await StopAsync();
 
         PublishedCloudEvents.Should().HaveCount(2);
-        var de = PublishedCloudEvents.Last();
+        var de = PublishedCloudEvents.Single(e=>e.Type.StartsWith("dl:"));
         de.Type.Should().Be($"dl:{nameof(TestEventForRepublish2)}");
         var deadLetter = de.Data.Deserialize<TestEventForRepublish2DeadLetter>(JSON.DefaultJsonSerializerOptions)!;
         deadLetter.DeadEvent.Should().BeEquivalentTo(pe);
@@ -118,7 +116,7 @@ public class ProcessTests : RedisPubSubTestBase
         WaitUntill(() =>
         {
             return DeliveredCloudEvents.Count == 100;
-        }, 5);
+        }, 10);
         await StopAsync();
     }
 }

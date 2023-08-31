@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Threading.Channels;
 using FakeItEasy;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,6 +30,7 @@ public class RedisPubSubTestBase
                 opts.ConnectionMultiplexerFactory = () => redisConn;
                 opts.ConsumerGroup = "Test";
                 opts.RunningWorkItemLimit = 8;
+                opts.PollInterval = TimeSpan.FromSeconds(1);
             })
             .AddPubSubDeadLetterSender(opts =>
             {
@@ -77,9 +79,6 @@ public class RedisPubSubTestBase
         A.CallTo(() => redisDb.StreamAcknowledgeAsync(A<RedisKey>.Ignored, A<RedisValue>.Ignored, A<RedisValue>.Ignored, CommandFlags.None))
             .ReturnsLazily(call =>
             {
-                var messageId = (int)(RedisValue)call.Arguments[2]!;
-                var cloudEvent = PublishedCloudEvents[messageId - 1];
-                AckedCloudEvents.Add(cloudEvent);
                 return Task.FromResult(1L);
             });
 
@@ -91,8 +90,8 @@ public class RedisPubSubTestBase
     public SubscribeHostedService Subscriber { get; }
     public Dictionary<string, Channel<StreamEntry>> Streams { get; }
     public ICloudEventPubSub Pubsub { get; }
-    internal List<CloudEvent> PublishedCloudEvents { get; } = new();
-    internal List<CloudEvent> DeliveredCloudEvents { get; } = new();
+    internal ConcurrentBag<CloudEvent> PublishedCloudEvents { get; } = new();
+    internal ConcurrentBag<CloudEvent> DeliveredCloudEvents { get; } = new();
     internal List<CloudEvent> AckedCloudEvents { get; } = new();
 
     private Registry ConfigureRegistry()

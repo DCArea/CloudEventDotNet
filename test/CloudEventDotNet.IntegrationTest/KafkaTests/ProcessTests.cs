@@ -21,6 +21,7 @@ public class ProcessTests : KafkaPubSubTestBase
         var pe = await Pubsub.PublishAsync(ping);
         WaitUntillDelivered(pe, 3);
         await StopAsync();
+        Collector.Processed.Count.Should().Be(1);
     }
 
     [CloudEvent]
