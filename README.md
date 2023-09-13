@@ -1,12 +1,12 @@
 # CloudEventDotNet
 
-Publish/Subscribe CloudEvents in .NET, inspired by Dapr Pub/Sub
+Publish/Subscribe CloudEvents in .NET, inspired by Dapr Pub/Sub Component
 
 ## Features
 
-* Publish/Subscribe events in CloudEvent format
+* Publish/Subscribe events with CloudEvent format
 * With both Kafka and Redis support
-* At-Least-Once delivery guarantee, also support At-Most-Once delivery for Kafka
+* At-Least-Once delivery guarantee
 * Redeliver failed events
 * Obeservability support (traces/metrics)
 * ***DOES NOT*** support delivery events in order
@@ -86,4 +86,3 @@ The benchmark result on a 4*2.4GHz Core VM:
 | Subscribe | ~150k/s | ~40k/s |  
 
 The benchmark code is located at `perf/CloudEventTester`
-
