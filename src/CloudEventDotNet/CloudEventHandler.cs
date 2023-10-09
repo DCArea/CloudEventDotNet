@@ -37,14 +37,19 @@ internal sealed class CloudEventHandler : ICloudEventHandler
 
     public async Task<bool> ProcessAsync(CloudEvent @event, CancellationToken token)
     {
+        var ac = Activity.Current;
         try
         {
             using var scope = _scopeFactory.CreateScope();
+            var processingAt = DateTimeOffset.UtcNow;
+            var deliveryTardiness = processingAt - @event.Time;
+            _metrics.DeliveryTardiness.Record((long)deliveryTardiness.TotalMilliseconds);
+            _logger.CloudEventProcessing(@event.Id, deliveryTardiness);
+            ac?.SetTag("cloudevents.tardiness", deliveryTardiness.TotalSeconds);
             var sw = ValueStopwatch.StartNew();
-            _metrics.CloudEventProcessing(@event);
             await _process(scope.ServiceProvider, @event, token).ConfigureAwait(false);
+            _metrics.ProcessLatency.Record((long)sw.GetElapsedTime().TotalMilliseconds);
             _logger.CloudEventProcessed(@event.Id);
-            _metrics.CloudEventProcessed(sw.GetElapsedTime());
             Activity.Current?.SetStatus(ActivityStatusCode.Ok);
             return true;
         }

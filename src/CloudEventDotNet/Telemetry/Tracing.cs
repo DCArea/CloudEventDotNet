@@ -24,7 +24,7 @@ internal static class Tracing
             {
                 activity.SetTag("cloudevents.event_subject", cloudEvent.Subject);
             }
-            cloudEvent.Extensions ??= new();
+            cloudEvent.Extensions ??= [];
             cloudEvent.Extensions["traceparent"] = JsonValue.Create(activity.Id).Deserialize<JsonElement>();
             cloudEvent.Extensions["tracestate"] = JsonValue.Create(activity.TraceStateString).Deserialize<JsonElement>();
         }

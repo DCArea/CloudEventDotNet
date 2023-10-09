@@ -32,26 +32,14 @@ internal static class Metrics
 
 internal class CloudEventMetricsContext
 {
-    private readonly HistogramAggregator _processLatency;
-    private readonly HistogramAggregator _deliveryTardiness;
+    public HistogramAggregator ProcessLatency { get; }
+    public HistogramAggregator DeliveryTardiness { get; }
 
     public CloudEventMetricsContext(string pubsub, string topic, string type)
     {
         var tagList = new TagList("pubsub", pubsub, "topic", topic);
 
-        _deliveryTardiness = Metrics.s_DeliveryTardiness.FindOrCreate(new("pubsub", pubsub, "topic", topic));
-        _processLatency = Metrics.s_ProcessLatency.FindOrCreate(new("pubsub", pubsub, "topic", topic, "type", type));
-    }
-
-    public void CloudEventProcessed(TimeSpan processLatency)
-    {
-        _processLatency.Record((long)processLatency.TotalMilliseconds);
-    }
-
-    public void CloudEventProcessing(CloudEvent cloudEvent)
-    {
-        var processingAt = DateTimeOffset.UtcNow;
-        var deliveryTardiness = processingAt - cloudEvent.Time;
-        _deliveryTardiness.Record((long)deliveryTardiness.TotalMilliseconds);
+        DeliveryTardiness = Metrics.s_DeliveryTardiness.FindOrCreate(new("pubsub", pubsub, "topic", topic));
+        ProcessLatency = Metrics.s_ProcessLatency.FindOrCreate(new("pubsub", pubsub, "topic", topic, "type", type));
     }
 }

@@ -7,7 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Confluent.Kafka" Version="2.2.0" />
-    <PackageVersion Include="DCA.Extensions.BackgroundTask" Version="0.1.0-alpha1.2" />
+    <PackageVersion Include="DCA.Extensions.BackgroundTask" Version="0.1.0-alpha1.3" />
     <PackageVersion Include="MartinCostello.Logging.XUnit" Version="0.3.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(MExVersion)" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MExVersion)" />
