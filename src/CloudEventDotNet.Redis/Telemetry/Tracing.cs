@@ -4,22 +4,22 @@ namespace CloudEventDotNet.Redis.Telemetry;
 
 internal static class Tracing
 {
-    public static void OnMessageProduced(string clientName)
+    public static void OnMessageProduced(string messageId)
     {
         var activity = Activity.Current;
-        activity?.SetTag("messaging.redis.client_name", clientName);
+        activity?.SetTag("messaging.redis.message.id", messageId);
     }
 
     public static void OnMessageProcessing(
         string consumerGroup,
-        string consumerName
+        string messageId
     )
     {
         Activity? activity = Activity.Current;
         if (activity is not null)
         {
-            activity.SetTag("messaging.redis.client_id", consumerName);
-            activity.SetTag("messaging.redis.consumer_group", consumerGroup);
+            activity.SetTag("messaging.redis.consumer.group", consumerGroup);
+            activity?.SetTag("messaging.redis.message.id", messageId);
         }
     }
 

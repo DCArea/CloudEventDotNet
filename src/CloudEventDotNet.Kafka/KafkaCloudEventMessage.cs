@@ -18,7 +18,7 @@ internal sealed class KafkaCloudEventMessage(
     private readonly WorkItemWaiter _waiter = new();
     private int _started = 0;
     public bool Started => _started == 1;
-    public TopicPartitionOffset Offset => message.TopicPartitionOffset;
+    public ConsumeResult<byte[], byte[]> Message => message;
     void IThreadPoolWorkItem.Execute() => Start();
     public void Start()
     {
@@ -50,7 +50,7 @@ internal sealed class KafkaCloudEventMessage(
             activity = CloudEventDotNet.Telemetry.Tracing.OnProcessing(channelContext.PubSubName, channelContext.TopicPartition.Topic, cloudEvent);
             if (activity is not null)
             {
-                Tracing.OnMessageProcessing(activity, channelContext.ConsumerName, channelContext.ConsumerGroup);
+                Tracing.OnMessageProcessing(activity, channelContext.ConsumerGroup, message.TopicPartitionOffset);
             }
 
             var result = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token)

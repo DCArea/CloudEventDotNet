@@ -36,6 +36,6 @@ internal sealed class KafkaCloudEventPublisher : ICloudEventPublisher
             .ConfigureAwait(false);
 
         Logs.MessageProduced(_logger, _pubSubName, topic, result.Partition, result.Offset);
-        Tracing.OnMessageProduced(result, _producer.Name);
+        Tracing.OnMessageProduced(result);
     }
 }

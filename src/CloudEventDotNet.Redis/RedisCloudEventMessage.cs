@@ -50,7 +50,7 @@ internal sealed class RedisCloudEventMessage(
             activity = CloudEventDotNet.Telemetry.Tracing.OnProcessing(channelContext.PubSubName, channelContext.Topic, cloudEvent);
             if (activity is not null)
             {
-                Tracing.OnMessageProcessing(channelContext.ConsumerGroup, channelContext.ConsumerName);
+                Tracing.OnMessageProcessing(channelContext.ConsumerGroup, message.Id.ToString());
             }
 
             var result = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token)
@@ -66,8 +66,6 @@ internal sealed class RedisCloudEventMessage(
                 Logs.MessageAcknowledged(logger, channelContext.PubSubName, channelContext.Topic, message.Id.ToString());
                 metrics.OnMessageAcknowledged();
             }
-
-            activity?.SetStatus(ActivityStatusCode.Ok);
         }
         catch (Exception ex)
         {

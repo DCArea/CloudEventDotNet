@@ -71,7 +71,7 @@ internal sealed class KafkaCloudEventSubscriber : ICloudEventSubscriber
 
     public async Task StopAsync()
     {
-        if (_topics.Length == 0)
+        if (_topics.Length > 0)
         {
             _stopTokenSource.Cancel();
             await _consumeLoop;
@@ -196,7 +196,7 @@ internal sealed class KafkaCloudEventSubscriber : ICloudEventSubscriber
                 .Cast<KafkaCloudEventMessage>();
             foreach (var cp in checkpoints)
             {
-                _consumer.StoreOffset(cp.Offset);
+                _consumer.StoreOffset(cp.Message);
             }
         }
         catch (KafkaException ex) when (ex.Error.Code == ErrorCode.Local_State)

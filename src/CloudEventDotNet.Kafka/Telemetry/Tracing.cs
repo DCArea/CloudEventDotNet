@@ -7,20 +7,23 @@ internal static class Tracing
 {
     public static void OnMessageProcessing(
         Activity activity,
-        string consumerName,
-        string consumerGroup)
+        string consumerGroup,
+        TopicPartitionOffset offset)
     {
-        activity.SetTag("messaging.kafka.client_id", consumerName);
-        activity.SetTag("messaging.kafka.consumer_group", consumerGroup);
+        activity.SetTag("messaging.system", "kafka");
+        activity.SetTag("messaging.kafka.consumer.group", consumerGroup);
+        activity.SetTag("messaging.kafka.destination.partition", offset.Partition.Value);
+        activity.SetTag("messaging.kafka.message.offset", offset.Offset.Value);
     }
 
-    public static void OnMessageProduced(DeliveryResult<byte[], byte[]> result, string clientId)
+    public static void OnMessageProduced(DeliveryResult<byte[], byte[]> result)
     {
         var activity = Activity.Current;
         if (activity is not null)
         {
-            activity.SetTag("messaging.kafka.client_id", clientId);
-            activity.SetTag("messaging.kafka.partition", result.Partition.Value);
+            activity.SetTag("messaging.system", "kafka");
+            activity.SetTag("messaging.kafka.destination.partition", result.Partition.Value);
+            activity.SetTag("messaging.kafka.message.offset", result.Offset.Value);
         }
     }
 

@@ -32,6 +32,6 @@ internal sealed class RedisCloudEventPublisher : ICloudEventPublisher
             useApproximateMaxLength: true)
             .ConfigureAwait(false);
         Logs.MessageProduced(_logger, _pubsubName, topic, id.ToString());
-        Tracing.OnMessageProduced(_multiplexer.ClientName);
+        Tracing.OnMessageProduced(id.ToString());
     }
 }
