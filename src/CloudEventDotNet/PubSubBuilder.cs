@@ -1,6 +1,7 @@
 ﻿
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Polly;
 
 namespace CloudEventDotNet;
 
@@ -37,6 +38,7 @@ public class PubSubBuilder
         services.AddHostedService<SubscribeHostedService>();
         services.AddSingleton<ICloudEventPubSub, CloudEventPubSub>();
         services.AddSingleton<ICloudEventHandlerFactory, CloudEventHandlerFactory>();
+        services.AddResiliencePipelineRegistry<string>();
     }
 
     /// <summary>
@@ -56,7 +58,7 @@ public class PubSubBuilder
     /// <exception cref="InvalidOperationException">CloudEvent handler registered with unknown CloudEvent</exception>
     public PubSubBuilder Load(params Assembly[] assemblies)
     {
-        if (!assemblies.Any())
+        if (assemblies.Length == 0)
         {
             throw new ArgumentException("No assemblies found to scan. Supply at least one assembly to scan for handlers.");
         }
@@ -80,7 +82,7 @@ public class PubSubBuilder
                 .GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICloudEventHandler<>))
                 .ToArray();
-            if (!handlerInterfaces.Any())
+            if (handlerInterfaces.Length == 0)
             {
                 continue;
             }
@@ -115,6 +117,12 @@ public class PubSubBuilder
         services.AddSingleton<IDeadLetterSender, PubSubDeadLetterSender>();
         services.Configure(configure);
 
+        return this;
+    }
+
+    public PubSubBuilder AddDefaultResiliencePipeline(Action<ResiliencePipelineBuilder> configure)
+    {
+        Services.AddResiliencePipeline(CloudEventHandlerFactory.ResiliencePolicyName, configure);
         return this;
     }
 }

@@ -17,7 +17,7 @@ internal sealed class KafkaCloudEventSubscriber : ICloudEventSubscriber
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly ILogger<KafkaCloudEventMessage> _messageLogger;
-    private readonly Dictionary<TopicPartition, (KafkaMessageChannelContext Context, BackgroundTaskChannel Channel)> _channels = new();
+    private readonly Dictionary<TopicPartition, (KafkaMessageChannelContext Context, BackgroundTaskChannel Channel)> _channels = [];
     private readonly CancellationTokenSource _stopTokenSource = new();
     public KafkaCloudEventSubscriber(
         string pubSubName,
@@ -51,7 +51,8 @@ internal sealed class KafkaCloudEventSubscriber : ICloudEventSubscriber
                 RevokeChannels(partitions);
             },
             partitionsLostHandler: (c, partitions) => Logs.PartitionsLost(_logger, _pubSubName, partitions),
-            logHandler: (_, log) => Logs.OnConsumerLog(_logger, _pubSubName, log)
+            logHandler: (_, log) => Logs.OnConsumerLog(_logger, _pubSubName, log),
+            offsetCommittedHandler: (c, offsets) => Logs.OnOffsetsCommitted(_logger, _pubSubName, offsets.Error, offsets.Offsets)
         );
     }
 
@@ -59,7 +60,7 @@ internal sealed class KafkaCloudEventSubscriber : ICloudEventSubscriber
     private Task _commitLoop = default!;
     public Task StartAsync()
     {
-        if (_topics.Any())
+        if (_topics.Length > 0)
         {
             _consumer.Subscribe(_topics);
             _consumeLoop = Task.Factory.StartNew(ConsumeLoop, TaskCreationOptions.LongRunning);
@@ -70,7 +71,7 @@ internal sealed class KafkaCloudEventSubscriber : ICloudEventSubscriber
 
     public async Task StopAsync()
     {
-        if (_topics.Any())
+        if (_topics.Length == 0)
         {
             _stopTokenSource.Cancel();
             await _consumeLoop;
@@ -175,8 +176,6 @@ internal sealed class KafkaCloudEventSubscriber : ICloudEventSubscriber
         {
             if (_channels.TryGetValue(tpo.TopicPartition, out var v))
             {
-                var checkpoint = (KafkaCloudEventMessage)v.Channel.Checkpoints.First();
-                _consumer.StoreOffset(checkpoint.Offset);
                 _channels.Remove(tpo.TopicPartition);
                 channelsToRevoke.Add(v.Channel);
             }

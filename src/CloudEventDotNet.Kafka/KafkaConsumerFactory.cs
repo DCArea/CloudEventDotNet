@@ -10,7 +10,8 @@ internal sealed class KafkaConsumerFactory : IKafkaConsumerFactory
         Action<IConsumer<TKey, TValue>, List<TopicPartition>>? partitionAssignmentHandler = null,
         Action<IConsumer<TKey, TValue>, List<TopicPartitionOffset>>? partitionsLostHandler = null,
         Action<IConsumer<TKey, TValue>, List<TopicPartitionOffset>>? partitionsRevokedHandler = null,
-        Action<IConsumer<TKey, TValue>, LogMessage>? logHandler = null
+        Action<IConsumer<TKey, TValue>, LogMessage>? logHandler = null,
+        Action<IConsumer<TKey, TValue>, CommittedOffsets>? offsetCommittedHandler = null
     )
     {
         var builder = new ConsumerBuilder<TKey, TValue>(consumerConfig);
@@ -34,6 +35,10 @@ internal sealed class KafkaConsumerFactory : IKafkaConsumerFactory
         {
             builder.SetLogHandler(logHandler);
         }
+        if (offsetCommittedHandler is not null)
+        {
+            builder.SetOffsetsCommittedHandler(offsetCommittedHandler);
+        }
         return builder.Build();
     }
 }
@@ -46,6 +51,7 @@ internal interface IKafkaConsumerFactory
         Action<IConsumer<TKey, TValue>, List<TopicPartition>>? partitionAssignmentHandler = null,
         Action<IConsumer<TKey, TValue>, List<TopicPartitionOffset>>? partitionsLostHandler = null,
         Action<IConsumer<TKey, TValue>, List<TopicPartitionOffset>>? partitionsRevokedHandler = null,
-        Action<IConsumer<TKey, TValue>, LogMessage>? logHandler = null
+        Action<IConsumer<TKey, TValue>, LogMessage>? logHandler = null,
+        Action<IConsumer<TKey, TValue>, CommittedOffsets>? offsetCommittedHandler = null
     );
 }

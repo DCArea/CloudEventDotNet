@@ -39,11 +39,12 @@ internal static partial class Logs
         ConsumerLog(logger, pubsub, (LogLevel)level, log.Message);
     }
 
+
     [LoggerMessage(
-        Level = LogLevel.Debug,
-        Message = "[{pubsub}] Committed offsets: {offsets}"
+        Level = LogLevel.Information,
+        Message = "[{pubsub}] Offsets committed: {error} {offsets}"
     )]
-    public static partial void CommittedOffsets(ILogger logger, string pubsub, TopicPartitionOffset[] offsets);
+    public static partial void OnOffsetsCommitted(ILogger logger, string pubsub, Error error, IList<TopicPartitionOffsetError> offsets);
 
     [LoggerMessage(
         Level = LogLevel.Trace,

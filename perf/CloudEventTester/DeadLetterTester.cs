@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using CloudEventDotNet;
-using Confluent.Kafka;
-using StackExchange.Redis;
+using Polly;
 
 namespace CloudEventTester;
 
@@ -18,6 +17,9 @@ public class DeadLetterTester : Tester
         return builder.AddPubSubDeadLetterSender(opts =>
         {
             opts.Topic = "DL";
+        }).AddDefaultResiliencePipeline(b =>
+        {
+            b.AddRetry(new());
         });
     }
 
@@ -27,6 +29,9 @@ public class DeadLetterTester : Tester
         return builder.AddPubSubDeadLetterSender(opts =>
         {
             opts.Topic = "DL";
+        }).AddDefaultResiliencePipeline(b =>
+        {
+            b.AddRetry(new());
         });
     }
 

@@ -9,7 +9,7 @@ internal static class Metrics
 
     private static readonly CounterAggregatorGroup s_cloudEventsPublishedCounter = new(Meter, "dca_cloudevents_published");
 
-    internal static readonly long[] buckets = new long[] { 5, 20, 50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 60_000, 2 * 60_000, 5 * 60_000, 10 * 60_000 };
+    internal static readonly long[] buckets = [5, 20, 50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 60_000, 2 * 60_000, 5 * 60_000, 10 * 60_000];
 
     internal static readonly HistogramAggregatorGroup s_ProcessLatency =
         new(

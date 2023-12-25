@@ -48,16 +48,16 @@ public class FakeKafkaMessageStream
 
 public class FakeKafka : IConsumer<byte[], byte[]>, IProducer<byte[], byte[]>
 {
-    public Dictionary<TopicPartition, FakeKafkaMessageStream> Streams { get; set; } = new();
-    public ConcurrentBag<DeliveryResult<byte[], byte[]>> ProducedMessages { get; } = new();
-    public ConcurrentBag<Message<byte[], byte[]>> ConsumedMessages { get; } = new();
+    public Dictionary<TopicPartition, FakeKafkaMessageStream> Streams { get; set; } = [];
+    public ConcurrentBag<DeliveryResult<byte[], byte[]>> ProducedMessages { get; } = [];
+    public ConcurrentBag<Message<byte[], byte[]>> ConsumedMessages { get; } = [];
     public Action<IConsumer<byte[], byte[]>, List<TopicPartition>>? OnPartitionAssignment { get; set; }
     public Action<IConsumer<byte[], byte[]>, List<TopicPartitionOffset>>? OnPartitionRevoked { get; set; }
     string IConsumer<byte[], byte[]>.MemberId => throw new NotImplementedException();
 
-    public List<TopicPartition> Assignment { get; private set; } = new();
+    public List<TopicPartition> Assignment { get; private set; } = [];
 
-    List<string> IConsumer<byte[], byte[]>.Subscription { get; } = new();
+    List<string> IConsumer<byte[], byte[]>.Subscription { get; } = [];
 
     IConsumerGroupMetadata IConsumer<byte[], byte[]>.ConsumerGroupMetadata => throw new NotImplementedException();
 

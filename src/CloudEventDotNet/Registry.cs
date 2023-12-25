@@ -10,30 +10,23 @@ internal delegate Task HandleCloudEventDelegate(IServiceProvider serviceProvider
 /// <summary>
 /// A registry of CloudEvent metadata and handlers
 /// </summary>
-public sealed class Registry
+/// <remarks>
+/// Constructor of Registry
+/// </remarks>
+/// <param name="defaultPubSubName">The default PubSub name</param>
+/// <param name="defaultTopic">The default topic</param>
+/// <param name="defaultSource">The default source</param>
+public sealed class Registry(string defaultPubSubName, string defaultTopic, string defaultSource)
 {
-    internal readonly Dictionary<Type, CloudEventMetadata> _metadata = new();
-    internal readonly Dictionary<CloudEventMetadata, HandleCloudEventDelegate> _handlerDelegates = new();
-    internal readonly Dictionary<CloudEventMetadata, ICloudEventHandler> _handlers = new();
+    internal readonly Dictionary<Type, CloudEventMetadata> _metadata = [];
+    internal readonly Dictionary<CloudEventMetadata, HandleCloudEventDelegate> _handlerDelegates = [];
+    internal readonly Dictionary<CloudEventMetadata, ICloudEventHandler> _handlers = [];
 
-    public string DefaultPubSubName { get; }
+    public string DefaultPubSubName { get; } = defaultPubSubName;
 
-    public string DefaultTopic { get; }
+    public string DefaultTopic { get; } = defaultTopic;
 
-    public string DefaultSource { get; }
-
-    /// <summary>
-    /// Constructor of Registry
-    /// </summary>
-    /// <param name="defaultPubSubName">The default PubSub name</param>
-    /// <param name="defaultTopic">The default topic</param>
-    /// <param name="defaultSource">The default source</param>
-    public Registry(string defaultPubSubName, string defaultTopic, string defaultSource)
-    {
-        DefaultPubSubName = defaultPubSubName;
-        DefaultTopic = defaultTopic;
-        DefaultSource = defaultSource;
-    }
+    public string DefaultSource { get; } = defaultSource;
 
     internal Registry Build(IServiceProvider services)
     {

@@ -59,7 +59,7 @@ public class RedisPubSubTestBase
                         items.Add(item);
                     }
                 }
-                return items.ToArray();
+                return [.. items];
             });
 
         A.CallTo(() => redisDb.StreamAddAsync(A<RedisKey>.Ignored, "data", A<RedisValue>.Ignored, null, A<int?>.Ignored, A<bool>.Ignored, CommandFlags.None))
@@ -72,7 +72,7 @@ public class RedisPubSubTestBase
 
                 var topic = (RedisKey)call.Arguments[0]!;
                 var stream = Streams[(string)topic!];
-                await stream.Writer.WriteAsync(new StreamEntry(id, new NameValueEntry[] { new NameValueEntry("data", data) }));
+                await stream.Writer.WriteAsync(new StreamEntry(id, [new NameValueEntry("data", data)]));
                 return (RedisValue)id;
             });
 
@@ -90,9 +90,9 @@ public class RedisPubSubTestBase
     public SubscribeHostedService Subscriber { get; }
     public Dictionary<string, Channel<StreamEntry>> Streams { get; }
     public ICloudEventPubSub Pubsub { get; }
-    internal ConcurrentBag<CloudEvent> PublishedCloudEvents { get; } = new();
-    internal ConcurrentBag<CloudEvent> DeliveredCloudEvents { get; } = new();
-    internal List<CloudEvent> AckedCloudEvents { get; } = new();
+    internal ConcurrentBag<CloudEvent> PublishedCloudEvents { get; } = [];
+    internal ConcurrentBag<CloudEvent> DeliveredCloudEvents { get; } = [];
+    internal List<CloudEvent> AckedCloudEvents { get; } = [];
 
     private Registry ConfigureRegistry()
     {

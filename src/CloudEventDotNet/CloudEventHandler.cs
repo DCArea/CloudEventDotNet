@@ -2,6 +2,7 @@
 using CloudEventDotNet.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace CloudEventDotNet;
 
@@ -10,29 +11,27 @@ public interface ICloudEventHandler
     Task<bool> ProcessAsync(CloudEvent @event, CancellationToken token);
 }
 
-internal sealed class CloudEventHandler : ICloudEventHandler
+internal sealed class CloudEventHandler(
+    CloudEventMetadata metadata,
+    HandleCloudEventDelegate handleDelegate,
+    IServiceProvider serviceProvider,
+    IServiceScopeFactory scopeFactory,
+    ILogger<CloudEventHandler> logger) : ICloudEventHandler
 {
-    private readonly CloudEventMetadata _metadata;
-    private readonly HandleCloudEventDelegate _process;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly CloudEventMetricsContext _metrics;
-    private readonly CloudEventLogger _logger;
+    public const string ResiliencePolicyName = nameof(CloudEventHandler);
+    private readonly CloudEventMetricsContext _metrics = new(metadata.PubSubName, metadata.Topic, metadata.Type);
+    private readonly CloudEventLogger _logger = new(logger, metadata);
+    private readonly ResiliencePipeline? _resiliencePipeline;
 
     public CloudEventHandler(
-        CloudEventMetadata metadata,
-        HandleCloudEventDelegate handleDelegate,
-        IServiceProvider serviceProvider,
-        IServiceScopeFactory scopeFactory,
-        ILogger<CloudEventHandler> logger)
+    ResiliencePipeline resiliencePipeline,
+    CloudEventMetadata metadata,
+    HandleCloudEventDelegate handleDelegate,
+    IServiceProvider serviceProvider,
+    IServiceScopeFactory scopeFactory,
+    ILogger<CloudEventHandler> logger) : this(metadata, handleDelegate, serviceProvider, scopeFactory, logger)
     {
-        _metadata = metadata;
-        _process = handleDelegate;
-        _serviceProvider = serviceProvider;
-        _scopeFactory = scopeFactory;
-        _metrics = new CloudEventMetricsContext(metadata.PubSubName, metadata.Topic, metadata.Type);
-        _logger = new CloudEventLogger(logger, metadata);
-
+        _resiliencePipeline = resiliencePipeline;
     }
 
     public async Task<bool> ProcessAsync(CloudEvent @event, CancellationToken token)
@@ -40,14 +39,23 @@ internal sealed class CloudEventHandler : ICloudEventHandler
         var ac = Activity.Current;
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var processingAt = DateTimeOffset.UtcNow;
             var deliveryTardiness = processingAt - @event.Time;
             _metrics.DeliveryTardiness.Record((long)deliveryTardiness.TotalMilliseconds);
             _logger.CloudEventProcessing(@event.Id, deliveryTardiness);
             ac?.SetTag("cloudevents.tardiness", deliveryTardiness.TotalSeconds);
             var sw = ValueStopwatch.StartNew();
-            await _process(scope.ServiceProvider, @event, token).ConfigureAwait(false);
+
+            if (_resiliencePipeline != null)
+            {
+                await _resiliencePipeline.ExecuteAsync((ct) => new ValueTask(handleDelegate(scope.ServiceProvider, @event, ct)), token).ConfigureAwait(false);
+            }
+            else
+            {
+                await handleDelegate(scope.ServiceProvider, @event, token).ConfigureAwait(false);
+            }
+
             _metrics.ProcessLatency.Record((long)sw.GetElapsedTime().TotalMilliseconds);
             _logger.CloudEventProcessed(@event.Id);
             Activity.Current?.SetStatus(ActivityStatusCode.Ok);
@@ -58,10 +66,10 @@ internal sealed class CloudEventHandler : ICloudEventHandler
             _logger.CloudEventProcessFailed(ex, @event.Id);
             Activity.Current?.SetStatus(ActivityStatusCode.Error, $"Exception: {ex.GetType().Name}");
 
-            var _deadLetterSender = _serviceProvider.GetService<IDeadLetterSender>();
+            var _deadLetterSender = serviceProvider.GetService<IDeadLetterSender>();
             if (_deadLetterSender != null)
             {
-                await _deadLetterSender.SendAsync(_metadata, @event, ex.ToString());
+                await _deadLetterSender.SendAsync(metadata, @event, ex.ToString());
                 return true;
             }
             return false;

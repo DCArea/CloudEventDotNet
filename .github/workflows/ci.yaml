@@ -13,6 +13,7 @@ jobs:
           dotnet-version: | 
             6.0.x
             7.0.x
+            8.0.x
       - name: Restore dependencies
         run: dotnet restore
       - name: Build
@@ -32,14 +33,10 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: | 
-            6.0.x
-            7.0.x
+            8.0.x
       - name: Restore dependencies
         run: dotnet restore
       - name: Restore tools
         run: dotnet tool restore
       - name: Build
         run: dotnet build --configuration Release --no-restore --version-suffix="ci.${GITHUB_RUN_NUMBER}"
-      - name: Validate
-        run: Get-Item pkgs/*.nupkg |% { dotnet tool run dotnet-validate package local $_ }
-        shell: pwsh

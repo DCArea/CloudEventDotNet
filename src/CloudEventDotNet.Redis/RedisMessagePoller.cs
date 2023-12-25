@@ -221,7 +221,7 @@ internal class RedisMessagePoller
                 _channelContext.ConsumerGroup,
                 _channelContext.ConsumerGroup,
                 (long)_options.ProcessingTimeout.TotalMilliseconds,
-                new[] { messageId }
+                [messageId]
             ).ConfigureAwait(false);
             if (claimedMessages.Length == 0 || claimedMessages[0].IsNull)
             {

@@ -1,12 +1,12 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
 
 namespace CloudEventDotNet.Diagnostics.Aggregators;
 
 
-internal class HistogramAggregatorGroup
+internal class HistogramAggregatorGroup(HistogramAggregatorOptions options)
 {
-    private readonly HistogramAggregatorOptions _options;
+    private readonly HistogramAggregatorOptions _options = options;
 
     internal ConcurrentDictionary<TagList, HistogramAggregator> Aggregators { get; } = new();
     public HistogramAggregatorGroup(
@@ -19,11 +19,6 @@ internal class HistogramAggregatorGroup
         meter.CreateObservableCounter(name + "-bucket", CollectBuckets, description: description);
         meter.CreateObservableCounter(name + "-count", CollectCount, description: description);
         meter.CreateObservableCounter(name + "-sum", CollectSum, unit, description);
-    }
-
-    public HistogramAggregatorGroup(HistogramAggregatorOptions options)
-    {
-        _options = options;
     }
 
     public HistogramAggregator FindOrCreate(in TagList tagList)

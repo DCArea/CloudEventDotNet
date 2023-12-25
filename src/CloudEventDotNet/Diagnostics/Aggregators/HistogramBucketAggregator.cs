@@ -1,21 +1,13 @@
-using System.Diagnostics.Metrics;
+﻿namespace CloudEventDotNet.Diagnostics.Aggregators;
 
-namespace CloudEventDotNet.Diagnostics.Aggregators;
-
-internal class HistogramBucketAggregator
+internal class HistogramBucketAggregator(
+    KeyValuePair<string, object?>[] tags,
+    double bound,
+    KeyValuePair<string, object?> label)
 {
     private long _value = 0;
-    private readonly KeyValuePair<string, object?>[] _tags;
-    public double Bound { get; }
-
-    public HistogramBucketAggregator(
-        KeyValuePair<string, object?>[] tags,
-        double bound,
-        KeyValuePair<string, object?> label)
-    {
-        _tags = tags.Concat(new[] { label }).ToArray();
-        Bound = bound;
-    }
+    private readonly KeyValuePair<string, object?>[] _tags = [.. tags, .. new[] { label }];
+    public double Bound { get; } = bound;
 
     public ReadOnlySpan<KeyValuePair<string, object?>> Tags => _tags;
 

@@ -1,4 +1,4 @@
-using System.Diagnostics.Metrics;
+﻿using System.Diagnostics.Metrics;
 
 namespace CloudEventDotNet.Diagnostics.Aggregators;
 
@@ -15,7 +15,6 @@ public class HistogramAggregator
         HistogramAggregatorOptions options,
         Meter meter,
         string name,
-        string? unit = null,
         string? description = null) : this(tagList, options)
     {
         meter.CreateObservableCounter(name + "-bucket", CollectBuckets, description: description);
@@ -32,7 +31,7 @@ public class HistogramAggregator
         long[] buckets = options.Buckets;
         if (buckets[^1] != long.MaxValue)
         {
-            buckets = buckets.Concat(new[] { long.MaxValue }).ToArray();
+            buckets = [.. buckets, .. new[] { long.MaxValue }];
         }
 
         Func<long, KeyValuePair<string, object?>> getLabel;

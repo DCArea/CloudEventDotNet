@@ -13,7 +13,7 @@ public abstract class Tester
         Services = new ServiceCollection()
             .AddLogging(logging => logging.AddConsole()
                 // .AddFilter("DCA.Extensions.BackgroundTask", LogLevel.Debug)
-                .SetMinimumLevel(LogLevel.Warning)
+                .SetMinimumLevel(LogLevel.Information)
             );
 
         string providerName = Environment.GetEnvironmentVariable("PROVIDER")!.ToLowerInvariant();

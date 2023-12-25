@@ -107,8 +107,8 @@ public class KafkaPubSubTestBase
 
 public class CloudEventCollector
 {
-    public ConcurrentBag<CloudEvent> Delivered { get; } = new();
-    public ConcurrentBag<CloudEvent> Processed { get; } = new();
+    public ConcurrentBag<CloudEvent> Delivered { get; } = [];
+    public ConcurrentBag<CloudEvent> Processed { get; } = [];
 }
 
 
