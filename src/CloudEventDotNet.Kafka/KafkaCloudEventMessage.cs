@@ -53,16 +53,14 @@ internal sealed class KafkaCloudEventMessage(
                 Tracing.OnMessageProcessing(activity, channelContext.ConsumerName, channelContext.ConsumerGroup);
             }
 
-            bool succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token)
+            var result = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token)
                 .ConfigureAwait(false);
 
-            if (!succeed)
+            if (result == ProcessingResult.Failed)
             {
                 await producer.ReproduceAsync(message)
                     .ConfigureAwait(false);
             }
-
-            activity?.SetStatus(ActivityStatusCode.Ok);
         }
         catch (Exception ex)
         {

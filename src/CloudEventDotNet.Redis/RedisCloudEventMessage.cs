@@ -53,10 +53,10 @@ internal sealed class RedisCloudEventMessage(
                 Tracing.OnMessageProcessing(channelContext.ConsumerGroup, channelContext.ConsumerName);
             }
 
-            var succeed = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token)
+            var result = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token)
                 .ConfigureAwait(false);
 
-            if (succeed)
+            if (result is ProcessingResult.Success or ProcessingResult.SentToDeadLetter)
             {
                 await redis.StreamAcknowledgeAsync(
                     channelContext.Topic,

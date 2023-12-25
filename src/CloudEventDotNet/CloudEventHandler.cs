@@ -6,9 +6,16 @@ using Polly;
 
 namespace CloudEventDotNet;
 
+public enum ProcessingResult
+{
+    Success = 0,
+    SentToDeadLetter = 1,
+    Failed = 2
+}
+
 public interface ICloudEventHandler
 {
-    Task<bool> ProcessAsync(CloudEvent @event, CancellationToken token);
+    Task<ProcessingResult> ProcessAsync(CloudEvent @event, CancellationToken token);
 }
 
 internal sealed class CloudEventHandler(
@@ -34,7 +41,7 @@ internal sealed class CloudEventHandler(
         _resiliencePipeline = resiliencePipeline;
     }
 
-    public async Task<bool> ProcessAsync(CloudEvent @event, CancellationToken token)
+    public async Task<ProcessingResult> ProcessAsync(CloudEvent @event, CancellationToken token)
     {
         var ac = Activity.Current;
         try
@@ -59,7 +66,7 @@ internal sealed class CloudEventHandler(
             _metrics.ProcessLatency.Record((long)sw.GetElapsedTime().TotalMilliseconds);
             _logger.CloudEventProcessed(@event.Id);
             Activity.Current?.SetStatus(ActivityStatusCode.Ok);
-            return true;
+            return ProcessingResult.Success;
         }
         catch (Exception ex)
         {
@@ -70,9 +77,9 @@ internal sealed class CloudEventHandler(
             if (_deadLetterSender != null)
             {
                 await _deadLetterSender.SendAsync(metadata, @event, ex.ToString());
-                return true;
+                return ProcessingResult.SentToDeadLetter;
             }
-            return false;
+            return ProcessingResult.Failed;
         }
     }
 }
