@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-using CloudEventDotNet.Diagnostics.Aggregators;
-using CloudEventDotNet.Telemetry;
+﻿using CloudEventDotNet.Diagnostics.Aggregators;
 using FluentAssertions;
 using Xunit;
 
