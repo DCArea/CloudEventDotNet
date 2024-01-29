@@ -16,6 +16,8 @@ Publish/Subscribe CloudEvents in .NET, inspired by Dapr Pub/Sub Component
 ### Install package
 ```shell
 dotnet add package CloudEventDotNet
+dotnet add package CloudEventDotNet.Redis # With Redis Stream
+dotnet add package CloudEventDotNet.Kafka # With Apache Kafka
 ```
 
 ### Configure pubsub:
@@ -44,6 +46,10 @@ services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: "my-topic")
     {
         options.ConnectionMultiplexerFactory = () => redis;
         options.ConsumerGroup = consumerGroup;
+    })
+    .AddPubSubDeadLetterSender(opts => // enable dead letter
+    {
+        opts.Topic = "DL";
     });
 ```
 
@@ -67,7 +73,7 @@ await pubsub.PublishAsync(new OrderCancelled(order.Id, reason));
 
 ### Subscribe and process cloud event:
 ``` csharp
-public sealed class OrderCancelledHandler : ICloudEventHandler<OrderCancelled>
+public class OrderCancelledHandler : ICloudEventHandler<OrderCancelled>
 {
     public async Task HandleAsync(CloudEvent<PingEvent> cloudEvent, CancellationToken token)
     {
