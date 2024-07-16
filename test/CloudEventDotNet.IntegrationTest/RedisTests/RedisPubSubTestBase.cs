@@ -15,8 +15,8 @@ public class RedisPubSubTestBase
     public RedisPubSubTestBase()
     {
         var services = new ServiceCollection();
+        services.AddSingleton(typeof(SubscriptionMonitor<>));
         services.AddLogging();
-        services.AddSingleton(DeliveredCloudEvents);
         var redisConn = A.Fake<IConnectionMultiplexer>();
         var redisDb = A.Fake<IDatabase>();
         A.CallTo(() => redisConn.GetDatabase(A<int>.Ignored, A<object?>.Ignored)).Returns(redisDb);
@@ -88,8 +88,8 @@ public class RedisPubSubTestBase
     public Dictionary<string, Channel<StreamEntry>> Streams { get; }
     public ICloudEventPubSub Pubsub { get; }
     internal ConcurrentBag<CloudEvent> PublishedCloudEvents { get; } = [];
-    internal ConcurrentBag<CloudEvent> DeliveredCloudEvents { get; } = [];
     internal List<CloudEvent> AckedCloudEvents { get; } = [];
+    internal SubscriptionMonitor<T> GetMonitor<T>() => ServiceProvider.GetRequiredService<SubscriptionMonitor<T>>();
 
     protected async Task StopAsync()
     {
@@ -101,18 +101,4 @@ public class RedisPubSubTestBase
             .WaitAsync(TimeSpan.FromSeconds(10));
     }
 
-    [StackTraceHidden]
-    [DebuggerHidden]
-    protected void WaitUntillDelivered<TData>(CloudEvent<TData> cloudEvent, int timeoutSeconds = 5)
-        => WaitUntill(() => DeliveredCloudEvents.Any(e => e.Id == cloudEvent.Id), timeoutSeconds * 1000);
-
-    [StackTraceHidden]
-    [DebuggerHidden]
-    protected static void WaitUntill(Func<bool> condition, int timeoutSeconds = 5)
-    {
-        if (!SpinWait.SpinUntil(condition, timeoutSeconds * 1000))
-        {
-            throw new XunitException($"{condition} not satisfied within {timeoutSeconds}s");
-        }
-    }
 }

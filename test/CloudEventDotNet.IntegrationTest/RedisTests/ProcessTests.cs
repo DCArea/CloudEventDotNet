@@ -1,6 +1,4 @@
 ﻿using System.Text.Json;
-using CloudEventDotNet.Diagnostics.Aggregators;
-using CloudEventDotNet.Telemetry;
 using FluentAssertions;
 using Xunit;
 
@@ -15,27 +13,29 @@ public class ProcessTests : RedisPubSubTestBase
 
         var ping = new Ping(Guid.NewGuid().ToString());
         var pe = await Pubsub.PublishAsync(ping);
-        WaitUntillDelivered(pe, 3);
+        var monitor = GetMonitor<Ping>();
+        monitor.WaitUntillDelivered(pe, 3);
+
         await StopAsync();
-        
-        DeliveredCloudEvents.Count.Should().Be(1);
+
+        monitor.DeliveredEvents.Count.Should().Be(1);
     }
 
     [CloudEvent(PubSubName = "redis")]
     public record TestEventForRepublish(string FA)
     {
-        public class Handler : ICloudEventHandler<TestEventForRepublish>
+        public class Handler(SubscriptionMonitor<TestEventForRepublish> monitor) : MonitoredHandler<TestEventForRepublish>(monitor)
         {
-            public Task HandleAsync(CloudEvent<TestEventForRepublish> cloudEvent, CancellationToken token) => throw new NotImplementedException();
+            public override Task HandleInternalAsync(CloudEvent<TestEventForRepublish> cloudEvent, CancellationToken token) => throw new NotImplementedException();
         }
     };
 
     [CloudEvent(PubSubName = "redis", Topic = "Test_DL", Type = $"dl:{nameof(TestEventForRepublish)}")]
     public record TestEventForRepublishDeadLetter() : DeadLetter<TestEventForRepublish>
     {
-        public class Handler : ICloudEventHandler<TestEventForRepublishDeadLetter>
+        public class Handler(SubscriptionMonitor<TestEventForRepublishDeadLetter> monitor) : MonitoredHandler<TestEventForRepublishDeadLetter>(monitor)
         {
-            public Task HandleAsync(CloudEvent<TestEventForRepublishDeadLetter> cloudEvent, CancellationToken token)
+            public override Task HandleInternalAsync(CloudEvent<TestEventForRepublishDeadLetter> cloudEvent, CancellationToken token)
             {
                 //cloudEvent.Data.DeadEvent.Should().NotBeNull();
                 return Task.CompletedTask;
@@ -48,17 +48,16 @@ public class ProcessTests : RedisPubSubTestBase
     public async Task ShouldSendDeadLetter()
     {
         await Subscriber.StartAsync(default);
-        var ping = new TestEventForRepublish(Guid.NewGuid().ToString());
 
-        var pe = await Pubsub.PublishAsync(ping);
-        WaitUntillDelivered(pe, 10);
-        WaitUntill(() =>
-        {
-            return PublishedCloudEvents.Count == 2;
-        }, 10);
+        var e = new TestEventForRepublish(Guid.NewGuid().ToString());
+        var pe = await Pubsub.PublishAsync(e);
+        var monitor = GetMonitor<TestEventForRepublishDeadLetter>();
+        monitor.WaitUntillDelivered(pe, 10);
+        WaitHelper.WaitUntill(() => PublishedCloudEvents.Count == 2);
+
         await StopAsync();
 
-        var de = PublishedCloudEvents.Single(e=>e.Type.StartsWith("dl:"));
+        var de = PublishedCloudEvents.Single(e => e.Type.StartsWith("dl:"));
         de.Type.Should().Be($"dl:{nameof(TestEventForRepublish)}");
         var deadLetter = de.Data.Deserialize<TestEventForRepublishDeadLetter>(JSON.DefaultJsonSerializerOptions)!;
         deadLetter.DeadEvent.Should().BeEquivalentTo(pe);
@@ -86,18 +85,16 @@ public class ProcessTests : RedisPubSubTestBase
     public async Task ShouldNotSendDeadLetterForDeadLetter()
     {
         await Subscriber.StartAsync(default);
-        var ping = new TestEventForRepublish2(Guid.NewGuid().ToString());
 
+        var ping = new TestEventForRepublish2(Guid.NewGuid().ToString());
         var pe = await Pubsub.PublishAsync(ping);
-        WaitUntillDelivered(pe, 10);
-        WaitUntill(() =>
-        {
-            return DeliveredCloudEvents.Count == 2;
-        }, 10);
+        var monitor = GetMonitor<TestEventForRepublish2>();
+        monitor.WaitUntillDelivered(pe, 10);
+        GetMonitor<TestEventForRepublish2DeadLetter>().WaitUntillCount(2, 10);
         await StopAsync();
 
         PublishedCloudEvents.Should().HaveCount(2);
-        var de = PublishedCloudEvents.Single(e=>e.Type.StartsWith("dl:"));
+        var de = PublishedCloudEvents.Single(e => e.Type.StartsWith("dl:"));
         de.Type.Should().Be($"dl:{nameof(TestEventForRepublish2)}");
         var deadLetter = de.Data.Deserialize<TestEventForRepublish2DeadLetter>(JSON.DefaultJsonSerializerOptions)!;
         deadLetter.DeadEvent.Should().BeEquivalentTo(pe);
@@ -112,10 +109,7 @@ public class ProcessTests : RedisPubSubTestBase
             var ping = new Ping(Guid.NewGuid().ToString());
             await Pubsub.PublishAsync(ping);
         }
-        WaitUntill(() =>
-        {
-            return DeliveredCloudEvents.Count == 100;
-        }, 10);
+        GetMonitor<Ping>().WaitUntillCount(100, 10);
         await StopAsync();
     }
 }

@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Text.Json;
 using CloudEventDotNet.Redis;
 using FakeItEasy;
 using FluentAssertions;
@@ -11,9 +13,13 @@ namespace CloudEventDotNet.IntegrationTest.RedisTests;
 [CloudEvent(PubSubName = "redis")]
 public record Ping(string FA)
 {
-    public class Handler : ICloudEventHandler<Ping>
+    public class Handler(SubscriptionMonitor<Ping> monitor) : ICloudEventHandler<Ping>
     {
-        public Task HandleAsync(CloudEvent<Ping> cloudEvent, CancellationToken token) => Task.CompletedTask;
+        public Task HandleAsync(CloudEvent<Ping> cloudEvent, CancellationToken token)
+        {
+            monitor.DeliveredEvents.Add(cloudEvent);
+            return Task.CompletedTask;
+        }
     }
 }
 

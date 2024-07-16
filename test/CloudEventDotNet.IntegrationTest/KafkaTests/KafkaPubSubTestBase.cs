@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using CloudEventDotNet.Kafka;
 using Confluent.Kafka;
 using FakeItEasy;
@@ -16,6 +15,7 @@ public class KafkaPubSubTestBase
     public KafkaPubSubTestBase()
     {
         var services = new ServiceCollection();
+        services.AddSingleton(typeof(SubscriptionMonitor<>));
         services.AddLogging();
         services.AddCloudEvents(defaultPubSubName: PubsubName, defaultTopic: "Test")
             .AddKafkaPubSub(PubsubName, opt =>
@@ -47,8 +47,8 @@ public class KafkaPubSubTestBase
         services.AddSingleton(producerFactory);
         services.RemoveAll<IKafkaConsumerFactory>();
         services.AddSingleton(consumerFactory);
-        services.RemoveAll<ICloudEventHandlerFactory>();
-        services.AddSingleton<ICloudEventHandlerFactory>(new FakeCloudEventHandlerFactory(Collector));
+        //services.RemoveAll<ICloudEventHandlerFactory>();
+        //services.AddSingleton<ICloudEventHandlerFactory>(new FakeCloudEventHandlerFactory(Collector));
         ServiceProvider = services.BuildServiceProvider();
 
         var registry = ServiceProvider.GetRequiredService<Registry2>();
@@ -65,8 +65,9 @@ public class KafkaPubSubTestBase
     public ServiceProvider ServiceProvider { get; }
     public SubscribeHostedService Subscriber { get; }
     public ICloudEventPubSub Pubsub { get; }
-    public CloudEventCollector Collector { get; } = new();
+    //public CloudEventCollector Collector { get; } = new();
     public FakeKafka Kafka { get; }
+    internal SubscriptionMonitor<T> GetMonitor<T>() => ServiceProvider.GetRequiredService<SubscriptionMonitor<T>>();
 
     protected async Task StartAsync()
     {
@@ -81,46 +82,46 @@ public class KafkaPubSubTestBase
             .WaitAsync(TimeSpan.FromSeconds(10));
     }
 
-    [StackTraceHidden]
-    [DebuggerHidden]
-    protected void WaitUntillDelivered<TData>(CloudEvent<TData> cloudEvent, int timeoutSeconds = 5)
-        => WaitUntill(() => Collector.Delivered.Any(e => e.Id == cloudEvent.Id), timeoutSeconds);
+    //[StackTraceHidden]
+    //[DebuggerHidden]
+    //protected void WaitUntillDelivered<TData>(CloudEvent<TData> cloudEvent, int timeoutSeconds = 5)
+    //    => WaitUntill(() => Collector.Delivered.Any(e => e.Id == cloudEvent.Id), timeoutSeconds);
 
-    [StackTraceHidden]
-    [DebuggerHidden]
-    protected void WaitUntillProcessed<TData>(CloudEvent<TData> cloudEvent, int timeoutSeconds = 5)
-        => WaitUntill(() => Collector.Processed.Any(e => e.Id == cloudEvent.Id), timeoutSeconds);
+    //[StackTraceHidden]
+    //[DebuggerHidden]
+    //protected void WaitUntillProcessed<TData>(CloudEvent<TData> cloudEvent, int timeoutSeconds = 5)
+    //    => WaitUntill(() => Collector.Processed.Any(e => e.Id == cloudEvent.Id), timeoutSeconds);
 
-    [StackTraceHidden]
-    [DebuggerHidden]
-    protected static void WaitUntill(Func<bool> condition, int timeoutSeconds = 5)
-    {
-        if (!SpinWait.SpinUntil(condition, timeoutSeconds * 1000))
-        {
-            throw new XunitException($"{condition} not satisfied within {timeoutSeconds}s");
-        }
-    }
+    //[StackTraceHidden]
+    //[DebuggerHidden]
+    //protected static void WaitUntill(Func<bool> condition, int timeoutSeconds = 5)
+    //{
+    //    if (!SpinWait.SpinUntil(condition, timeoutSeconds * 1000))
+    //    {
+    //        throw new XunitException($"{condition} not satisfied within {timeoutSeconds}s");
+    //    }
+    //}
 }
 
-public class CloudEventCollector
-{
-    public ConcurrentBag<CloudEvent> Delivered { get; } = [];
-    public ConcurrentBag<CloudEvent> Processed { get; } = [];
-}
+//public class CloudEventCollector
+//{
+//    public ConcurrentBag<CloudEvent> Delivered { get; } = [];
+//    public ConcurrentBag<CloudEvent> Processed { get; } = [];
+//}
 
 
-internal class FakeCloudEventHandlerFactory(CloudEventCollector collector) : ICloudEventHandlerFactory
-{
-    public ICloudEventHandler Create(IServiceProvider services, CloudEventMetadata metadata, HandleCloudEventDelegate handlerDelegate)
-    {
-        HandleCloudEventDelegate wrapped = async (IServiceProvider serviceProvider, CloudEvent @event, CancellationToken token) =>
-        {
-            collector.Delivered.Add(@event);
-            await handlerDelegate(serviceProvider, @event, token);
-            collector.Processed.Add(@event);
-        };
-        var handler = ActivatorUtilities.CreateInstance<CloudEventHandler>(services, metadata, wrapped);
-        return handler;
-    }
-}
+//internal class FakeCloudEventHandlerFactory(CloudEventCollector collector) : ICloudEventHandlerFactory
+//{
+//    public ICloudEventHandler Create(IServiceProvider services, CloudEventMetadata metadata, HandleCloudEventDelegate handlerDelegate)
+//    {
+//        HandleCloudEventDelegate wrapped = async (IServiceProvider serviceProvider, CloudEvent @event, CancellationToken token) =>
+//        {
+//            collector.Delivered.Add(@event);
+//            await handlerDelegate(serviceProvider, @event, token);
+//            collector.Processed.Add(@event);
+//        };
+//        var handler = ActivatorUtilities.CreateInstance<CloudEventHandler>(services, metadata, wrapped);
+//        return handler;
+//    }
+//}
 
