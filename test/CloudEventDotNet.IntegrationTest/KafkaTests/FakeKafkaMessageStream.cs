@@ -16,7 +16,7 @@ public class FakeKafkaMessageStream
     }
     public Channel<ConsumeResult<byte[], byte[]>> Stream { get; }
 
-    private TopicPartition TopicPartition { get; }
+    public TopicPartition TopicPartition { get; }
     public TopicPartitionOffset TopicPartitionOffset => new(TopicPartition, offset);
     private long offset = -1;
 

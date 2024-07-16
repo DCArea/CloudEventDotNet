@@ -10,10 +10,10 @@ public class ProcessTests : RedisPubSubTestBase
     [Fact]
     public async Task Subscribe()
     {
-        await Subscriber.StartAsync(default);
+        await StartAsync();
 
         var ping = new Ping(Guid.NewGuid().ToString());
-        var pe = await Pubsub.PublishAsync(ping);
+        var pe = await PubSub.PublishAsync(ping);
         var monitor = GetMonitor<Ping>();
         monitor.WaitUntillDelivered(pe, 3);
 
@@ -25,13 +25,12 @@ public class ProcessTests : RedisPubSubTestBase
     [Fact]
     public async Task ShouldSendDeadLetter()
     {
-        await Subscriber.StartAsync(default);
+        await StartAsync();
 
         var e = new TestEventForRepublish(Guid.NewGuid().ToString());
-        var pe = await Pubsub.PublishAsync(e);
+        var pe = await PubSub.PublishAsync(e);
         WaitHelper.WaitUntill(() => PublishedCloudEvents.Count == 2);
         GetMonitor<TestEventForRepublishDeadLetter>().WaitUntillCount(1);
-
         await StopAsync();
 
         var de = PublishedCloudEvents.Single(e => e.Type.StartsWith("dl:"));
@@ -43,10 +42,11 @@ public class ProcessTests : RedisPubSubTestBase
     [Fact]
     public async Task ShouldNotSendDeadLetterForDeadLetter()
     {
-        await Subscriber.StartAsync(default);
+        await StartAsync();
 
         var ping = new TestEventForRepublish2(Guid.NewGuid().ToString());
-        var pe = await Pubsub.PublishAsync(ping);
+        var pe = await PubSub.PublishAsync(ping);
+        WaitHelper.WaitUntill(() => PublishedCloudEvents.Count == 1);
         GetMonitor<TestEventForRepublish2>().WaitUntillDelivered(pe);
         GetMonitor<TestEventForRepublish2DeadLetter>().WaitUntillCount(1);
         await StopAsync();
@@ -61,11 +61,11 @@ public class ProcessTests : RedisPubSubTestBase
     [Fact]
     public async Task DequeueTest()
     {
-        await Subscriber.StartAsync(default);
+        await StartAsync();
         for (int i = 0; i < 100; i++)
         {
             var ping = new Ping(Guid.NewGuid().ToString());
-            await Pubsub.PublishAsync(ping);
+            await PubSub.PublishAsync(ping);
         }
         GetMonitor<Ping>().WaitUntillCount(100, 10);
         await StopAsync();

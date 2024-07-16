@@ -102,7 +102,7 @@ internal class RedisMessagePoller
                     _options.ConsumerGroup,
                     _options.ConsumerGroup,
                     StreamPosition.NewMessages,
-                    _options.PollBatchSize)
+                    _options.PollBatchSize, false, CommandFlags.None)
                     .ConfigureAwait(false);
 
                 if (messages.Length > 0)

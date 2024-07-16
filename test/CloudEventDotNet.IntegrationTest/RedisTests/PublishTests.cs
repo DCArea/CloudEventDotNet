@@ -11,7 +11,7 @@ public class PublishTests : RedisPubSubTestBase
     public async Task PublishCloudEvent()
     {
         var ping = new Ping(Guid.NewGuid().ToString());
-        await Pubsub.PublishAsync(ping);
+        await PubSub.PublishAsync(ping);
 
         Assert.NotEmpty(PublishedCloudEvents);
         var published = PublishedCloudEvents.Single();
