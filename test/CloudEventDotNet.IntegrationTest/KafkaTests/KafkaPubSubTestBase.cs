@@ -17,19 +17,16 @@ public class KafkaPubSubTestBase
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        var builder = services.AddCloudEvents(defaultPubSubName: PubsubName, defaultTopic: "Test")
-            .Load(GetType().Assembly)
+        services.AddCloudEvents(defaultPubSubName: PubsubName, defaultTopic: "Test")
             .AddKafkaPubSub(PubsubName, opt =>
             { }, opt =>
             {
                 opt.ConsumerConfig.GroupId = "Test";
                 opt.RunningWorkItemLimit = 8;
             })
-            .AddPubSubDeadLetterSender(opts =>
-            {
-                opts.PubSubName = PubsubName;
-                opts.Topic = "Test_DL";
-            });
+            .EnableDeadLetter(defaultDeadLetterTopic: "Test_DL")
+            .Load(GetType().Assembly)
+            .Build();
 
         Kafka = new FakeKafka();
 
@@ -54,7 +51,7 @@ public class KafkaPubSubTestBase
         services.AddSingleton<ICloudEventHandlerFactory>(new FakeCloudEventHandlerFactory(Collector));
         ServiceProvider = services.BuildServiceProvider();
 
-        var registry = ServiceProvider.GetRequiredService<Registry>();
+        var registry = ServiceProvider.GetRequiredService<Registry2>();
         foreach (var topic in registry.GetSubscribedTopics(PubsubName))
         {
             var tp = new TopicPartition(topic, new Partition(0));

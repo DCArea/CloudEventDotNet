@@ -1,5 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Text;
+﻿using System.Collections.Frozen;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -7,55 +7,118 @@ namespace CloudEventDotNet;
 
 internal delegate Task HandleCloudEventDelegate(IServiceProvider serviceProvider, CloudEvent @event, CancellationToken token);
 
+internal class RegisterOptions(Assembly[] assemblies)
+{
+    public Assembly[] Assemblies => assemblies;
+
+    public string? DefaultPubSubName { get; init; }
+    public string? DefaultTopic { get; init; }
+    public string? DefaultSource { get; init; }
+
+    public bool EnableDeadLetter { get; init; } = true;
+    public string? DefaultDeadLetterPubSubName { get; init; }
+    public string? DefaultDeadLetterSource { get; init; }
+    public string? DefaultDeadLetterTopic { get; init; }
+}
+
 /// <summary>
-/// A registry of CloudEvent metadata and handlers
+/// A registor CloudEvent metadata and handlers
 /// </summary>
 /// <remarks>
 /// Constructor of Registry
 /// </remarks>
-/// <param name="defaultPubSubName">The default PubSub name</param>
-/// <param name="defaultTopic">The default topic</param>
-/// <param name="defaultSource">The default source</param>
-public sealed class Registry(string defaultPubSubName, string defaultTopic, string defaultSource)
+/// <param name="services">Service collection</param>
+/// <param name="options">Options of register</param>
+internal sealed class Registry(IServiceCollection services, RegisterOptions options)
 {
-    internal readonly Dictionary<Type, CloudEventMetadata> _metadata = [];
-    internal readonly Dictionary<CloudEventMetadata, HandleCloudEventDelegate> _handlerDelegates = [];
-    internal readonly Dictionary<CloudEventMetadata, ICloudEventHandler> _handlers = [];
+    private readonly Dictionary<Type, CloudEventMetadata> _metadata = [];
+    private readonly Dictionary<CloudEventMetadata, (HandleCloudEventDelegate handler, SubscriptionOptions options)> _subscriptions = [];
 
-    public string DefaultPubSubName { get; } = defaultPubSubName;
-
-    public string DefaultTopic { get; } = defaultTopic;
-
-    public string DefaultSource { get; } = defaultSource;
-
-    internal Registry Build(IServiceProvider services)
+    internal Registry2 Build(IServiceProvider services)
     {
+        var handlers = new Dictionary<CloudEventMetadata, CloudEventSubscription>();
         var factory = services.GetRequiredService<ICloudEventHandlerFactory>();
-        foreach (var (metadata, handlerDelegate) in _handlerDelegates)
+        foreach (var (metadata, sub) in _subscriptions)
         {
-            _handlers.TryAdd(metadata, factory.Create(services, metadata, handlerDelegate));
+            handlers.TryAdd(metadata, new(factory.Create(services, metadata, sub.handler), sub.options));
         }
-        return this;
+        return new Registry2(
+            _metadata.ToFrozenDictionary(),
+            handlers.ToFrozenDictionary()
+            );
     }
 
-    internal void RegisterMetadata(Type eventDataType, CloudEventAttribute attribute)
+    private CloudEventMetadata AddMetadata(Type eventDataType, CloudEventAttribute attribute)
     {
-        var metadata = new CloudEventMetadata(
-            PubSubName: attribute.PubSubName ?? DefaultPubSubName,
-            Topic: attribute.Topic ?? DefaultTopic,
-            Type: attribute.Type ?? eventDataType.Name,
-            Source: attribute.Source ?? DefaultSource
-        );
+        var metadata = CloudEventMetadata.Create(
+            eventDataType,
+            attribute.PubSubName ?? options.DefaultPubSubName,
+            attribute.Topic ?? options.DefaultTopic,
+            attribute.Type ?? eventDataType.Name,
+            attribute.Source ?? options.DefaultSource
+            );
         _metadata.TryAdd(eventDataType, metadata);
+        return metadata;
     }
 
-    internal CloudEventMetadata GetMetadata(Type eventDataType) => _metadata[eventDataType];
-
-    internal bool TryGetHandler(CloudEventMetadata metadata, [NotNullWhen(true)] out ICloudEventHandler? handler) => _handlers.TryGetValue(metadata, out handler);
-
-    internal void RegisterHandler<TData>(CloudEventMetadata metadata)
+    public void RegisterEventsAndHandlers()
     {
-        _handlerDelegates.TryAdd(metadata, Handle);
+        foreach (var type in options.Assemblies.SelectMany(a => a.DefinedTypes))
+        {
+            var typeInfo = type.GetTypeInfo();
+            if (typeInfo.IsAbstract || typeInfo.IsInterface || typeInfo.IsGenericTypeDefinition || typeInfo.ContainsGenericParameters)
+            {
+                continue;
+            }
+
+            if (type.GetCustomAttribute<CloudEventAttribute>() is CloudEventAttribute attribute)
+            {
+                AddMetadata(type, attribute);
+                continue;
+            }
+
+            var handlerInterfaces = type
+                .GetInterfaces()
+                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICloudEventHandler<>))
+                .ToArray();
+            if (handlerInterfaces.Length == 0)
+            {
+                continue;
+            }
+
+            CloudEventMetadata subMeta;
+
+            foreach (var handlerInterface in handlerInterfaces)
+            {
+                var eventDataType = handlerInterface.GenericTypeArguments[0];
+                if (eventDataType.GetCustomAttribute<CloudEventAttribute>() is CloudEventAttribute subAttr)
+                {
+                    subMeta = AddMetadata(eventDataType, subAttr);
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Handler {type.Name} implements {handlerInterface.Name} but does not has a {nameof(CloudEventAttribute)}.");
+                }
+                var handlerDelegate = (HandleCloudEventDelegate)typeof(Registry)
+                    .GetMethod(nameof(GetHandlerDelegate), BindingFlags.NonPublic | BindingFlags.Static)!
+                    .MakeGenericMethod(eventDataType)!
+                    .Invoke(null, null)!;
+                var subOptions = SubscriptionOptions.Create(
+                    eventDataType,
+                    subAttr.EnableDeadLetter ?? options.EnableDeadLetter,
+                    subAttr.DeadLetterPubSubName ?? options.DefaultDeadLetterPubSubName ?? options.DefaultPubSubName,
+                    subAttr.DeadLetterPubSubName ?? options.DefaultDeadLetterSource ?? options.DefaultSource,
+                    subAttr.DeadLetterTopic ?? options.DefaultDeadLetterTopic ?? options.DefaultTopic
+                    );
+                _subscriptions.Add(subMeta, (handlerDelegate, subOptions));
+                services.AddScoped(handlerInterface, type);
+            }
+        }
+    }
+
+    private static HandleCloudEventDelegate GetHandlerDelegate<TData>()
+    {
+        return Handle;
 
         static Task Handle(IServiceProvider serviceProvider, CloudEvent @event, CancellationToken token)
         {
@@ -74,42 +137,6 @@ public sealed class Registry(string defaultPubSubName, string defaultTopic, stri
 
             return serviceProvider.GetRequiredService<ICloudEventHandler<TData>>().HandleAsync(typedEvent, token);
         }
-    }
-
-    /// <summary>
-    /// Get topics subscribed by specified pubsub
-    /// </summary>
-    /// <param name="pubSubName">The pubsub name</param>
-    /// <returns></returns>
-    public IEnumerable<string> GetSubscribedTopics(string pubSubName)
-    {
-        return _handlers.Keys
-            .Where(m => m.PubSubName == pubSubName)
-            .Select(m => m.Topic)
-            .Distinct();
-    }
-
-    /// <summary>
-    /// Show registered metadata and handlers
-    /// </summary>
-    /// <returns>Registered metadata and handlers</returns>
-    public string Debug()
-    {
-        var sb = new StringBuilder();
-
-        sb.AppendLine("Metadata:");
-        foreach (var (key, value) in _metadata)
-        {
-            sb.AppendLine($"{key}: {value}");
-        }
-
-        sb.AppendLine("Handlers:");
-        foreach (var (key, value) in _handlers)
-        {
-            sb.AppendLine($"{key}: {value}");
-        }
-
-        return sb.ToString();
     }
 
 }

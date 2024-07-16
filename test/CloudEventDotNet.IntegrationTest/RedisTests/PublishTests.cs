@@ -26,7 +26,8 @@ public class PublishTests
         services.AddLogging();
         services.AddCloudEvents()
             .Load(typeof(Ping).Assembly)
-            .AddRedisPubSub("redis", opts => { }, null);
+            .AddRedisPubSub("redis", opts => { }, null)
+            .Build();
         var redisConn = A.Fake<IConnectionMultiplexer>();
         var redisDb = A.Fake<IDatabase>();
         A.CallTo(() => redisConn.GetDatabase(A<int>.Ignored, A<object?>.Ignored)).Returns(redisDb);

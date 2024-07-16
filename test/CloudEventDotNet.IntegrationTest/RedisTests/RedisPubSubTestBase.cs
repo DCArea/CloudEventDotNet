@@ -21,7 +21,6 @@ public class RedisPubSubTestBase
         var redisDb = A.Fake<IDatabase>();
         A.CallTo(() => redisConn.GetDatabase(A<int>.Ignored, A<object?>.Ignored)).Returns(redisDb);
         services.AddCloudEvents()
-            .Load(GetType().Assembly)
             .AddRedisPubSub(PubsubName, opts =>
             {
                 opts.ConnectionMultiplexerFactory = () => redisConn;
@@ -32,16 +31,14 @@ public class RedisPubSubTestBase
                 opts.RunningWorkItemLimit = 8;
                 opts.PollInterval = TimeSpan.FromSeconds(1);
             })
-            .AddPubSubDeadLetterSender(opts =>
-            {
-                opts.PubSubName = PubsubName;
-                opts.Topic = "Test_DL";
-            });
+            .EnableDeadLetter(defaultDeadLetterTopic: "Test_DL")
+            .Load(GetType().Assembly)
+            .Build();
 
 
         ServiceProvider = services.BuildServiceProvider();
-        var registry = ConfigureRegistry();
         Subscriber = (SubscribeHostedService)ServiceProvider.GetRequiredService<IHostedService>();
+        var registry = ServiceProvider.GetRequiredService<Registry2>();
         Streams = registry.GetSubscribedTopics(PubsubName).ToDictionary(t => t, t => Channel.CreateUnbounded<StreamEntry>(new UnboundedChannelOptions { AllowSynchronousContinuations = false }));
 
         var streamIndex = 0;
@@ -94,23 +91,6 @@ public class RedisPubSubTestBase
     internal ConcurrentBag<CloudEvent> DeliveredCloudEvents { get; } = [];
     internal List<CloudEvent> AckedCloudEvents { get; } = [];
 
-    private Registry ConfigureRegistry()
-    {
-        var registry = ServiceProvider.GetRequiredService<Registry>();
-        foreach (var (metadata, dele) in registry._handlerDelegates)
-        {
-            var handler = registry._handlers[metadata];
-            HandleCloudEventDelegate newDelegate = (IServiceProvider serviceProvider, CloudEvent @event, CancellationToken token) =>
-            {
-                DeliveredCloudEvents.Add(@event);
-                return dele(serviceProvider, @event, token);
-            };
-            var newHandler = ActivatorUtilities.CreateInstance<CloudEventHandler>(ServiceProvider, metadata, newDelegate);
-            registry._handlers[metadata] = newHandler;
-        }
-        return registry;
-    }
-
     protected async Task StopAsync()
     {
         foreach (var (_, stream) in Streams)
@@ -123,7 +103,8 @@ public class RedisPubSubTestBase
 
     [StackTraceHidden]
     [DebuggerHidden]
-    protected void WaitUntillDelivered<TData>(CloudEvent<TData> cloudEvent, int timeoutSeconds = 5) => WaitUntill(() => DeliveredCloudEvents.Any(e => e.Id == cloudEvent.Id), timeoutSeconds * 1000);
+    protected void WaitUntillDelivered<TData>(CloudEvent<TData> cloudEvent, int timeoutSeconds = 5)
+        => WaitUntill(() => DeliveredCloudEvents.Any(e => e.Id == cloudEvent.Id), timeoutSeconds * 1000);
 
     [StackTraceHidden]
     [DebuggerHidden]

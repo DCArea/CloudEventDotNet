@@ -1,24 +1,24 @@
-﻿using CloudEventDotNet.Telemetry;
+﻿using System.Collections.Frozen;
+using CloudEventDotNet.Telemetry;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace CloudEventDotNet;
 
 internal sealed class CloudEventPubSub : ICloudEventPubSub
 {
     private readonly PubSubOptions _options;
-    private readonly Dictionary<string, ICloudEventPublisher> _publishers;
+    private readonly FrozenDictionary<string, ICloudEventPublisher> _publishers;
     private readonly ILogger<CloudEventPubSub> _logger;
-    private readonly Registry _registry;
+    private readonly Registry2 _registry;
 
     public CloudEventPubSub(
         ILogger<CloudEventPubSub> logger,
         IServiceProvider services,
-        Registry registry,
-        IOptions<PubSubOptions> options)
+        Registry2 registry,
+        PubSubOptions options)
     {
-        _options = options.Value;
-        _publishers = _options.PublisherFactoris.ToDictionary(kvp => kvp.Key, kvp => kvp.Value(services));
+        _options = options;
+        _publishers = _options.Publishers;
         _logger = logger;
         _registry = registry;
     }
@@ -44,12 +44,12 @@ internal sealed class CloudEventPubSub : ICloudEventPubSub
 
     public Task<CloudEvent<TData>> PublishAsync<TData>(
         CloudEvent<TData> cloudEvent,
-        string? pubsubName = null,
-        string? topic = null)
+        string pubsubName,
+        string topic)
     {
         var metadata = new CloudEventMetadata(
-            pubsubName ?? _options.DefaultPubSubName,
-            topic ?? _options.DefaultTopic,
+            pubsubName,
+            topic,
             cloudEvent.Type,
             cloudEvent.Source
         );

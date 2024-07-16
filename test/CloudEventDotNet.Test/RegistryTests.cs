@@ -5,24 +5,25 @@ namespace CloudEventDotNet.Test;
 
 public class RegistryTests
 {
-    private readonly Registry _registry;
+    private readonly Registry2 _registry;
 
     public RegistryTests()
     {
         var services = new ServiceCollection()
             .AddLogging();
         services.AddCloudEvents()
-            .Load(typeof(SimpleEvent).Assembly);
+            .Load(typeof(SimpleEvent).Assembly)
+            .Build();
         var sp = services.BuildServiceProvider();
 
-        _registry = sp.GetRequiredService<Registry>();
+        _registry = sp.GetRequiredService<Registry2>();
     }
 
     [Fact]
     public void Load()
     {
         var metadata = _registry.GetMetadata(typeof(SimpleEvent));
-        Assert.True(_registry.TryGetHandler(metadata, out _));
+        Assert.True(_registry.TryGetSubscription(metadata, out _));
     }
 
     [Fact]

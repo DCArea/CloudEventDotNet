@@ -25,31 +25,27 @@ public static class RedisPubSubBuilderExtensions
         if (configurePublish is not null)
         {
             services.Configure<RedisPublishOptions>(name, configurePublish);
-            services.Configure<PubSubOptions>(options =>
+            builder.AddPublisher(name, factory);
+
+            ICloudEventPublisher factory(IServiceProvider sp)
             {
-                ICloudEventPublisher factory(IServiceProvider sp)
-                {
-                    var optionsFactory = sp.GetRequiredService<IOptionsFactory<RedisPublishOptions>>();
-                    var options = optionsFactory.Create(name);
-                    return ActivatorUtilities.CreateInstance<RedisCloudEventPublisher>(sp, name, options);
-                }
-                options.PublisherFactoris[name] = factory;
-            });
+                var optionsFactory = sp.GetRequiredService<IOptionsFactory<RedisPublishOptions>>();
+                var options = optionsFactory.Create(name);
+                return ActivatorUtilities.CreateInstance<RedisCloudEventPublisher>(sp, name, options);
+            }
+
         }
 
         if (configureSubscribe is not null)
         {
             services.Configure<RedisSubscribeOptions>(name, configureSubscribe);
-            services.Configure<PubSubOptions>(options =>
+            builder.AddSubscriber(name, factory);
+            ICloudEventSubscriber factory(IServiceProvider sp)
             {
-                ICloudEventSubscriber factory(IServiceProvider sp)
-                {
-                    var optionsFactory = sp.GetRequiredService<IOptionsFactory<RedisSubscribeOptions>>();
-                    var options = optionsFactory.Create(name);
-                    return ActivatorUtilities.CreateInstance<RedisCloudEventSubscriber>(sp, name, options);
-                }
-                options.SubscriberFactoris[name] = factory;
-            });
+                var optionsFactory = sp.GetRequiredService<IOptionsFactory<RedisSubscribeOptions>>();
+                var options = optionsFactory.Create(name);
+                return ActivatorUtilities.CreateInstance<RedisCloudEventSubscriber>(sp, name, options);
+            }
         }
         return builder;
     }

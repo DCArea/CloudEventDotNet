@@ -11,14 +11,13 @@ public class ProcessTests : RedisPubSubTestBase
     [Fact]
     public async Task Subscribe()
     {
-        var tags = new TagList("pubsub", "redis", "topic", "default", "type", nameof(Ping));
-
         await Subscriber.StartAsync(default);
 
         var ping = new Ping(Guid.NewGuid().ToString());
         var pe = await Pubsub.PublishAsync(ping);
         WaitUntillDelivered(pe, 3);
         await StopAsync();
+        
         DeliveredCloudEvents.Count.Should().Be(1);
     }
 
