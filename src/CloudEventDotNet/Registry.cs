@@ -42,10 +42,11 @@ internal sealed class Registry(IServiceCollection services, RegisterOptions opti
         {
             handlers.TryAdd(metadata, new(factory.Create(services, metadata, sub.handler), sub.options));
         }
-        return new Registry2(
+        var reg = new Registry2(
             _metadata.ToFrozenDictionary(),
             handlers.ToFrozenDictionary()
             );
+        return reg;
     }
 
     private CloudEventMetadata AddMetadata(Type eventDataType, CloudEventAttribute attribute)
@@ -110,7 +111,7 @@ internal sealed class Registry(IServiceCollection services, RegisterOptions opti
                     subAttr.DeadLetterPubSubName ?? options.DefaultDeadLetterSource ?? options.DefaultSource,
                     subAttr.DeadLetterTopic ?? options.DefaultDeadLetterTopic ?? options.DefaultTopic
                     );
-                _subscriptions.Add(subMeta, (handlerDelegate, subOptions));
+                _subscriptions.TryAdd(subMeta, (handlerDelegate, subOptions));
                 services.AddScoped(handlerInterface, type);
             }
         }

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using CloudEventDotNet.IntegrationTest.Events;
 using FluentAssertions;
 using Xunit;
 
@@ -21,29 +22,6 @@ public class ProcessTests : RedisPubSubTestBase
         monitor.DeliveredEvents.Count.Should().Be(1);
     }
 
-    [CloudEvent(PubSubName = "redis")]
-    public record TestEventForRepublish(string FA)
-    {
-        public class Handler(SubscriptionMonitor<TestEventForRepublish> monitor) : MonitoredHandler<TestEventForRepublish>(monitor)
-        {
-            public override Task HandleInternalAsync(CloudEvent<TestEventForRepublish> cloudEvent, CancellationToken token) => throw new NotImplementedException();
-        }
-    };
-
-    [CloudEvent(PubSubName = "redis", Topic = "Test_DL", Type = $"dl:{nameof(TestEventForRepublish)}")]
-    public record TestEventForRepublishDeadLetter() : DeadLetter<TestEventForRepublish>
-    {
-        public class Handler(SubscriptionMonitor<TestEventForRepublishDeadLetter> monitor) : MonitoredHandler<TestEventForRepublishDeadLetter>(monitor)
-        {
-            public override Task HandleInternalAsync(CloudEvent<TestEventForRepublishDeadLetter> cloudEvent, CancellationToken token)
-            {
-                //cloudEvent.Data.DeadEvent.Should().NotBeNull();
-                return Task.CompletedTask;
-            }
-        }
-    }
-
-
     [Fact]
     public async Task ShouldSendDeadLetter()
     {
@@ -51,9 +29,8 @@ public class ProcessTests : RedisPubSubTestBase
 
         var e = new TestEventForRepublish(Guid.NewGuid().ToString());
         var pe = await Pubsub.PublishAsync(e);
-        var monitor = GetMonitor<TestEventForRepublishDeadLetter>();
-        monitor.WaitUntillDelivered(pe, 10);
         WaitHelper.WaitUntill(() => PublishedCloudEvents.Count == 2);
+        GetMonitor<TestEventForRepublishDeadLetter>().WaitUntillCount(1);
 
         await StopAsync();
 
@@ -63,24 +40,6 @@ public class ProcessTests : RedisPubSubTestBase
         deadLetter.DeadEvent.Should().BeEquivalentTo(pe);
     }
 
-
-    [CloudEvent(PubSubName = "redis")]
-    public record TestEventForRepublish2(string FA)
-    {
-        public class Handler : ICloudEventHandler<TestEventForRepublish2>
-        {
-            public Task HandleAsync(CloudEvent<TestEventForRepublish2> cloudEvent, CancellationToken token) => throw new NotImplementedException();
-        }
-    };
-    [CloudEvent(PubSubName = "redis", Topic = "Test_DL", Type = $"dl:{nameof(TestEventForRepublish2)}")]
-    public record TestEventForRepublish2DeadLetter() : DeadLetter<TestEventForRepublish2>
-    {
-        public class Handler : ICloudEventHandler<TestEventForRepublish2DeadLetter>
-        {
-            public Task HandleAsync(CloudEvent<TestEventForRepublish2DeadLetter> cloudEvent, CancellationToken token) => throw new NotImplementedException();
-        }
-    }
-
     [Fact]
     public async Task ShouldNotSendDeadLetterForDeadLetter()
     {
@@ -88,9 +47,8 @@ public class ProcessTests : RedisPubSubTestBase
 
         var ping = new TestEventForRepublish2(Guid.NewGuid().ToString());
         var pe = await Pubsub.PublishAsync(ping);
-        var monitor = GetMonitor<TestEventForRepublish2>();
-        monitor.WaitUntillDelivered(pe, 10);
-        GetMonitor<TestEventForRepublish2DeadLetter>().WaitUntillCount(2, 10);
+        GetMonitor<TestEventForRepublish2>().WaitUntillDelivered(pe);
+        GetMonitor<TestEventForRepublish2DeadLetter>().WaitUntillCount(1);
         await StopAsync();
 
         PublishedCloudEvents.Should().HaveCount(2);

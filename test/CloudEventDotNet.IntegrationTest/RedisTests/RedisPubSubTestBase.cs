@@ -12,6 +12,8 @@ namespace CloudEventDotNet.IntegrationTest.RedisTests;
 public class RedisPubSubTestBase
 {
     public const string PubsubName = "redis";
+    public const string Topic = "test_topic";
+    public const string Source = "test.source";
     public RedisPubSubTestBase()
     {
         var services = new ServiceCollection();
@@ -20,7 +22,7 @@ public class RedisPubSubTestBase
         var redisConn = A.Fake<IConnectionMultiplexer>();
         var redisDb = A.Fake<IDatabase>();
         A.CallTo(() => redisConn.GetDatabase(A<int>.Ignored, A<object?>.Ignored)).Returns(redisDb);
-        services.AddCloudEvents()
+        services.AddCloudEvents(PubsubName, Topic, Source)
             .AddRedisPubSub(PubsubName, opts =>
             {
                 opts.ConnectionMultiplexerFactory = () => redisConn;

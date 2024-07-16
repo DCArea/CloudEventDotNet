@@ -1,19 +1,8 @@
-﻿using System.Text.Json;
-using Confluent.Kafka;
+﻿using CloudEventDotNet.IntegrationTest.Events;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace CloudEventDotNet.IntegrationTest.KafkaTests;
-
-[CloudEvent(PubSubName = "kafka")]
-public record Ping(string FA)
-{
-    public class Handler : ICloudEventHandler<Ping>
-    {
-        public Task HandleAsync(CloudEvent<Ping> cloudEvent, CancellationToken token) => Task.CompletedTask;
-    }
-}
 
 public class PublishTests : KafkaPubSubTestBase
 {

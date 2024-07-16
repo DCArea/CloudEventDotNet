@@ -1,23 +1,23 @@
-﻿using System.Diagnostics;
-using CloudEventDotNet.Kafka;
+﻿using CloudEventDotNet.Kafka;
 using Confluent.Kafka;
 using FakeItEasy;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using Xunit.Sdk;
 
 namespace CloudEventDotNet.IntegrationTest.KafkaTests;
 
 public class KafkaPubSubTestBase
 {
     public const string PubsubName = "kafka";
+    public const string Topic = "test_topic";
+    public const string Source = "test.source";
     public KafkaPubSubTestBase()
     {
         var services = new ServiceCollection();
         services.AddSingleton(typeof(SubscriptionMonitor<>));
         services.AddLogging();
-        services.AddCloudEvents(defaultPubSubName: PubsubName, defaultTopic: "Test")
+        services.AddCloudEvents(PubsubName, Topic, Source)
             .AddKafkaPubSub(PubsubName, opt =>
             { }, opt =>
             {

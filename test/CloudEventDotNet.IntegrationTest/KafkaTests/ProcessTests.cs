@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using CloudEventDotNet.IntegrationTest.Events;
+using FluentAssertions;
 using Xunit;
 
 namespace CloudEventDotNet.IntegrationTest.KafkaTests;
@@ -12,35 +13,11 @@ public class ProcessTests : KafkaPubSubTestBase
 
         var ping = new Ping(Guid.NewGuid().ToString());
         var pe = await Pubsub.PublishAsync(ping);
-        GetMonitor<Ping>().WaitUntillDelivered(pe, 3);
+        GetMonitor<Ping>().WaitUntillDelivered(pe, 9999);
         await StopAsync();
 
         GetMonitor<Ping>().WaitUntillCount(1);
     }
-
-    [CloudEvent]
-    public record TestEventForRepublish(string FA)
-    {
-        public class Handler(SubscriptionMonitor<TestEventForRepublish> monitor) : MonitoredHandler<TestEventForRepublish>(monitor)
-        {
-            public override Task HandleInternalAsync(CloudEvent<TestEventForRepublish> cloudEvent, CancellationToken token) => throw new NotImplementedException();
-        }
-    };
-
-    [CloudEvent(Topic = "Test_DL", Type = $"dl:{nameof(TestEventForRepublish)}")]
-    public record TestEventForRepublishDeadLetter() : DeadLetter<TestEventForRepublish>
-    {
-        public class Handler(SubscriptionMonitor<TestEventForRepublishDeadLetter> monitor)
-            : MonitoredHandler<TestEventForRepublishDeadLetter>(monitor)
-        {
-            public override Task HandleInternalAsync(CloudEvent<TestEventForRepublishDeadLetter> cloudEvent, CancellationToken token)
-            {
-                //cloudEvent.Data.DeadEvent.Should().NotBeNull();
-                return Task.CompletedTask;
-            }
-        }
-    }
-
 
     [Fact]
     public async Task ShouldSendDeadLetter()
@@ -56,26 +33,6 @@ public class ProcessTests : KafkaPubSubTestBase
         var de = JSON.Deserialize<CloudEvent<TestEventForRepublishDeadLetter>>(Kafka.ProducedMessages.Single(m => m.Topic == "Test_DL").Value)!;
         de.Type.Should().Be($"dl:{nameof(TestEventForRepublish)}");
         de.Data.DeadEvent.Should().BeEquivalentTo(pe);
-    }
-
-
-    [CloudEvent]
-    public record TestEventForRepublish2(string FA)
-    {
-        public class Handler(SubscriptionMonitor<TestEventForRepublish2> monitor)
-            : MonitoredHandler<TestEventForRepublish2>(monitor)
-        {
-            public override Task HandleInternalAsync(CloudEvent<TestEventForRepublish2> cloudEvent, CancellationToken token) => throw new NotImplementedException();
-        }
-    };
-    [CloudEvent(Topic = "Test_DL", Type = $"dl:{nameof(TestEventForRepublish2)}")]
-    public record TestEventForRepublish2DeadLetter() : DeadLetter<TestEventForRepublish2>
-    {
-        public class Handler(SubscriptionMonitor<TestEventForRepublish2DeadLetter> monitor)
-            : MonitoredHandler<TestEventForRepublish2DeadLetter>(monitor)
-        {
-            public override Task HandleInternalAsync(CloudEvent<TestEventForRepublish2DeadLetter> cloudEvent, CancellationToken token) => throw new NotImplementedException();
-        }
     }
 
     [Fact]

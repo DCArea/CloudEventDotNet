@@ -21,9 +21,9 @@ public class PubSubBuilder
     /// <param name="defaultSource">The default source</param>
     public PubSubBuilder(
         IServiceCollection services,
-        string defaultPubSubName,
-        string defaultTopic,
-        string defaultSource)
+        string? defaultPubSubName = null,
+        string? defaultTopic = null,
+        string? defaultSource = null)
     {
         Services = services;
         optionsBuilder.DefaultPubSubName = defaultPubSubName;
