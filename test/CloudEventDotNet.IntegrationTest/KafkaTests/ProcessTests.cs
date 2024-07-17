@@ -13,7 +13,7 @@ public class ProcessTests : KafkaPubSubTestBase
 
         var ping = new Ping(Guid.NewGuid().ToString());
         var pe = await PubSub.PublishAsync(ping);
-        GetMonitor<Ping>().WaitUntillDelivered(pe, 9999);
+        GetMonitor<Ping>().WaitUntillDelivered(pe);
         await StopAsync();
 
         GetMonitor<Ping>().WaitUntillCount(1);
@@ -26,7 +26,7 @@ public class ProcessTests : KafkaPubSubTestBase
         var ping = new TestEventForRepublish(Guid.NewGuid().ToString());
 
         var pe = await PubSub.PublishAsync(ping);
-        GetMonitor<TestEventForRepublish>().WaitUntillDelivered(pe, 10);
+        GetMonitor<TestEventForRepublish>().WaitUntillDelivered(pe);
         WaitHelper.WaitUntill(() => Kafka.ProducedMessages.Count == 2);
         await StopAsync();
 
@@ -60,7 +60,7 @@ public class ProcessTests : KafkaPubSubTestBase
             var ping = new Ping(Guid.NewGuid().ToString());
             await PubSub.PublishAsync(ping);
         }
-        GetMonitor<Ping>().WaitUntillCount(100,9999);
+        GetMonitor<Ping>().WaitUntillCount(100);
         await StopAsync();
     }
 }

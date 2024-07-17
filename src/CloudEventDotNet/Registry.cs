@@ -108,7 +108,7 @@ internal sealed class Registry(IServiceCollection services, RegisterOptions opti
                     eventDataType,
                     subAttr.EnableDeadLetter ?? options.EnableDeadLetter,
                     subAttr.DeadLetterPubSubName ?? options.DefaultDeadLetterPubSubName ?? options.DefaultPubSubName,
-                    subAttr.DeadLetterPubSubName ?? options.DefaultDeadLetterSource ?? options.DefaultSource,
+                    subAttr.DeadLetterSource ?? options.DefaultDeadLetterSource ?? options.DefaultSource,
                     subAttr.DeadLetterTopic ?? options.DefaultDeadLetterTopic ?? options.DefaultTopic
                     );
                 _subscriptions.TryAdd(subMeta, (handlerDelegate, subOptions));
