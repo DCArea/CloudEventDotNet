@@ -1,4 +1,4 @@
-#if NET5_0_OR_GREATER
+﻿#if NET5_0_OR_GREATER
 // context: https://github.com/StackExchange/StackExchange.Redis/issues/2619
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.CompilerServices.IsExternalInit))]
 #else

@@ -2,6 +2,6 @@
 {
     internal interface IDeadLetterSender
     {
-        Task SendAsync(CloudEventMetadata metadata, CloudEvent cloudEvent, string deadMessage);
+        Task SendAsync(CloudEventMetadata metadata, CloudEvent cloudEvent, string deadMessage, DeadLetterOptions options);
     }
 }

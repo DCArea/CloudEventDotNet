@@ -9,19 +9,16 @@ namespace CloudEventDotNet;
 /// </summary>
 public class SubscribeHostedService : IHostedService
 {
-    private readonly PubSubOptions _options;
     private readonly List<ICloudEventSubscriber> _subscribers;
     private readonly ILogger<SubscribeHostedService> _logger;
 
     public SubscribeHostedService(
         ILogger<SubscribeHostedService> logger,
         IServiceProvider serviceProvider,
-        IOptions<PubSubOptions> options)
+        PubSubOptions options)
     {
-        _options = options.Value;
-        _subscribers = _options
-            .SubscriberFactoris.Values
-            .Select(factory => factory(serviceProvider))
+        _subscribers = options
+            .Subscribers.Values
             .ToList();
         _logger = logger;
     }

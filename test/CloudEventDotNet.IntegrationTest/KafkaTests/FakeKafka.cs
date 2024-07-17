@@ -1,54 +1,14 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading.Channels;
 using Confluent.Kafka;
 
 namespace CloudEventDotNet.IntegrationTest.KafkaTests;
 
-public class FakeKafkaMessageStream
-{
-    public FakeKafkaMessageStream(TopicPartition topicPartition)
-    {
-        Stream = Channel.CreateUnbounded<ConsumeResult<byte[], byte[]>>(new UnboundedChannelOptions
-        {
-            AllowSynchronousContinuations = false
-        });
-        TopicPartition = topicPartition;
-    }
-    public Channel<ConsumeResult<byte[], byte[]>> Stream { get; }
-
-    private TopicPartition TopicPartition { get; }
-    public TopicPartitionOffset TopicPartitionOffset => new(TopicPartition, offset);
-    private long offset = -1;
-
-    public TopicPartitionOffset Write(Message<byte[], byte[]> message)
-    {
-        var nOffset = Interlocked.Increment(ref offset);
-        var tpo = new TopicPartitionOffset(TopicPartition, new Offset(nOffset));
-        var consumeResult = new ConsumeResult<byte[], byte[]>()
-        {
-            TopicPartitionOffset = tpo,
-            Message = message
-        };
-        Stream.Writer.TryWrite(consumeResult);
-        return tpo;
-    }
-
-    public bool Consume([MaybeNullWhen(false)] out ConsumeResult<byte[], byte[]> result)
-    {
-        return Stream.Reader.TryRead(out result);
-    }
-
-    public void Stop()
-    {
-        Stream.Writer.Complete();
-    }
-}
-
 public class FakeKafka : IConsumer<byte[], byte[]>, IProducer<byte[], byte[]>
 {
-    public Dictionary<TopicPartition, FakeKafkaMessageStream> Streams { get; set; } = [];
+    //public Dictionary<TopicPartition, FakeKafkaMessageStream> Streams { get; set; } = [];
+    public ConcurrentDictionary<string, FakeKafkaMessageStream[]> Streams { get; set; } = [];
     public ConcurrentBag<DeliveryResult<byte[], byte[]>> ProducedMessages { get; } = [];
     public ConcurrentBag<Message<byte[], byte[]>> ConsumedMessages { get; } = [];
     public Action<IConsumer<byte[], byte[]>, List<TopicPartition>>? OnPartitionAssignment { get; set; }
@@ -69,10 +29,11 @@ public class FakeKafka : IConsumer<byte[], byte[]>, IProducer<byte[], byte[]>
     void IConsumer<byte[], byte[]>.Assign(TopicPartitionOffset partition) => throw new NotImplementedException();
     void IConsumer<byte[], byte[]>.Assign(IEnumerable<TopicPartitionOffset> partitions) => throw new NotImplementedException();
     void IConsumer<byte[], byte[]>.Assign(IEnumerable<TopicPartition> partitions)
+    //=> throw new NotImplementedException();
     {
         var partitionList = partitions.ToList();
         var revokedPartitions = Assignment.Except(partitionList)
-            .Select(tp => Streams[tp].TopicPartitionOffset)
+            .Select(tp => Streams[tp.Topic][tp.Partition.Value].TopicPartitionOffset)
             .ToList();
         OnPartitionRevoked?.Invoke(this, revokedPartitions);
         OnPartitionAssignment?.Invoke(this, partitionList);
@@ -88,7 +49,9 @@ public class FakeKafka : IConsumer<byte[], byte[]>, IProducer<byte[], byte[]>
 
     private bool TryConsume([MaybeNullWhen(false)] out ConsumeResult<byte[], byte[]> item)
     {
-        foreach (var (tp, stream) in Streams.Where(kvp => Assignment.Contains(kvp.Key)))
+        foreach (var stream in Streams
+            .Where(kvp => ((IConsumer<byte[], byte[]>)this).Subscription.Contains(kvp.Key))
+            .SelectMany(kvp => kvp.Value))
         {
             if (stream.Consume(out item))
             {
@@ -143,18 +106,26 @@ public class FakeKafka : IConsumer<byte[], byte[]>, IProducer<byte[], byte[]>
     void IConsumer<byte[], byte[]>.Subscribe(IEnumerable<string> topics)
     {
         ((IConsumer<byte[], byte[]>)this).Subscription.AddRange(topics);
+        foreach (var topic in topics)
+        {
+            Streams.GetOrAdd(topic, t =>
+                Enumerable.Range(0, 3)
+                    .Select(n => new FakeKafkaMessageStream(new TopicPartition(t, n)))
+                    .ToArray()
+                );
+        }
+
+        ((IConsumer<byte[], byte[]>)this).Assign(Streams.Values.SelectMany(ts => ts.Select(s => s.TopicPartition)));
     }
-    void IConsumer<byte[], byte[]>.Subscribe(string topic)
-    {
-        ((IConsumer<byte[], byte[]>)this).Subscription.Add(topic);
-    }
+    void IConsumer<byte[], byte[]>.Subscribe(string topic) => throw new NotImplementedException();
 
     void IConsumer<byte[], byte[]>.Unassign() => throw new NotImplementedException();
     void IConsumer<byte[], byte[]>.Unsubscribe()
     {
-        foreach (var (_, stream) in Streams)
+        foreach (var (_, ts) in Streams)
         {
-            stream.Stop();
+            foreach (var s in ts)
+                s.Stop();
         }
         ((IConsumer<byte[], byte[]>)this).Subscription.Clear();
     }
@@ -176,10 +147,14 @@ public class FakeKafka : IConsumer<byte[], byte[]>, IProducer<byte[], byte[]>
 
     Task<DeliveryResult<byte[], byte[]>> IProducer<byte[], byte[]>.ProduceAsync(string topic, Message<byte[], byte[]> message, CancellationToken cancellationToken)
     {
-        var partitionCount = Streams.Where(i => i.Key.Topic == topic).Count();
-        var tp = Streams.Where(i => i.Key.Topic == topic)
+        var ts = Streams.GetOrAdd(topic, t => Enumerable.Range(0, 3)
+                    .Select(n => new FakeKafkaMessageStream(new TopicPartition(t, n)))
+                    .ToArray()
+                );
+        var partitionCount = ts.Length;
+        var tp = ts
             .Skip((int)(Stopwatch.GetTimestamp() % partitionCount))
-            .Select(i => i.Key)
+            .Select(i => i.TopicPartition)
             .First();
 
         return (this as IProducer<byte[], byte[]>).ProduceAsync(tp, message, cancellationToken);
@@ -187,7 +162,11 @@ public class FakeKafka : IConsumer<byte[], byte[]>, IProducer<byte[], byte[]>
 
     Task<DeliveryResult<byte[], byte[]>> IProducer<byte[], byte[]>.ProduceAsync(TopicPartition topicPartition, Message<byte[], byte[]> message, CancellationToken cancellationToken)
     {
-        var stream = Streams[topicPartition];
+        var ts = Streams.GetOrAdd(topicPartition.Topic, t => Enumerable.Range(0, 3)
+                    .Select(n => new FakeKafkaMessageStream(new TopicPartition(t, n)))
+                    .ToArray()
+                );
+        var stream = ts[topicPartition.Partition.Value];
         var tpo = stream.Write(message);
         var result = new DeliveryResult<byte[], byte[]>
         {

@@ -11,7 +11,7 @@ internal sealed class RedisCloudEventMessage(
     ILogger<RedisCloudEventMessage> logger,
     RedisMessageChannelContext channelContext,
     MetricsContext metrics,
-    Registry registry,
+    Registry2 registry,
     IDatabase redis
     ) : IBackgroundTask
 {
@@ -41,7 +41,8 @@ internal sealed class RedisCloudEventMessage(
         {
             var cloudEvent = JSON.Deserialize<CloudEvent>((byte[])message["data"]!)!;
             var metadata = new CloudEventMetadata(channelContext.PubSubName, channelContext.Topic, cloudEvent.Type, cloudEvent.Source);
-            if (!registry.TryGetHandler(metadata, out var handler))
+
+            if (!registry.TryGetSubscription(metadata, out var sub))
             {
                 CloudEventDotNet.Telemetry.Logs.CloudEventHandlerNotFound(logger, channelContext.Key, metadata);
                 return;
@@ -53,7 +54,7 @@ internal sealed class RedisCloudEventMessage(
                 Tracing.OnMessageProcessing(channelContext.ConsumerGroup, message.Id.ToString());
             }
 
-            var result = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token)
+            var result = await sub.Handler.ProcessAsync(cloudEvent, sub.Options, _cancellationTokenSource.Token)
                 .ConfigureAwait(false);
 
             if (result is ProcessingResult.Success or ProcessingResult.SentToDeadLetter)

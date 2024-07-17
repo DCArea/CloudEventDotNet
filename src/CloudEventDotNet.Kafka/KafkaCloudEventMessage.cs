@@ -11,7 +11,7 @@ internal sealed class KafkaCloudEventMessage(
     ILogger<KafkaCloudEventMessage> logger,
     KafkaMessageChannelContext channelContext,
     string channelKey,
-    Registry registry,
+    Registry2 registry,
     KafkaRedeliverProducer producer
     ) : IBackgroundTask
 {
@@ -41,7 +41,8 @@ internal sealed class KafkaCloudEventMessage(
         {
             var cloudEvent = JSON.Deserialize<CloudEvent>(message.Message.Value)!;
             var metadata = new CloudEventMetadata(channelContext.PubSubName, message.Topic, cloudEvent.Type, cloudEvent.Source);
-            if (!registry.TryGetHandler(metadata, out var handler))
+
+            if (!registry.TryGetSubscription(metadata, out var sub))
             {
                 CloudEventDotNet.Telemetry.Logs.CloudEventHandlerNotFound(logger, channelKey, metadata);
                 return;
@@ -53,7 +54,7 @@ internal sealed class KafkaCloudEventMessage(
                 Tracing.OnMessageProcessing(activity, channelContext.ConsumerGroup, message.TopicPartitionOffset);
             }
 
-            var result = await handler.ProcessAsync(cloudEvent, _cancellationTokenSource.Token)
+            var result = await sub.Handler.ProcessAsync(cloudEvent, sub.Options, _cancellationTokenSource.Token)
                 .ConfigureAwait(false);
 
             if (result == ProcessingResult.Failed)

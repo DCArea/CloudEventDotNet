@@ -1,4 +1,4 @@
-using CloudEventDotNet;
+﻿using CloudEventDotNet;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -18,9 +18,9 @@ public static class CloudEventsServiceCollectionExtensions
     /// <param name="defaultSource">The default source</param>
     public static PubSubBuilder AddCloudEvents(
         this IServiceCollection services,
-        string defaultPubSubName = "default",
-        string defaultTopic = "default",
-        string defaultSource = "default")
+        string? defaultPubSubName = null,
+        string? defaultTopic = null,
+        string? defaultSource = null)
     {
         return new PubSubBuilder(services, defaultPubSubName, defaultTopic, defaultSource);
     }

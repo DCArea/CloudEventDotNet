@@ -10,9 +10,7 @@ namespace CloudEventDotNet;
 /// </summary>
 public class PubSubBuilder
 {
-    private readonly string _defaultPubSubName;
-    private readonly string _defaultTopic;
-    private readonly string _defaultSource;
+    private readonly PubSubOptionsBuilder optionsBuilder = new();
 
     /// <summary>
     /// PubSub builder
@@ -21,20 +19,17 @@ public class PubSubBuilder
     /// <param name="defaultPubSubName">The default PubSub name</param>
     /// <param name="defaultTopic">The default topic</param>
     /// <param name="defaultSource">The default source</param>
-    public PubSubBuilder(IServiceCollection services, string defaultPubSubName, string defaultTopic, string defaultSource)
+    public PubSubBuilder(
+        IServiceCollection services,
+        string? defaultPubSubName = null,
+        string? defaultTopic = null,
+        string? defaultSource = null)
     {
         Services = services;
-        _defaultPubSubName = defaultPubSubName;
-        _defaultTopic = defaultTopic;
-        _defaultSource = defaultSource;
+        optionsBuilder.DefaultPubSubName = defaultPubSubName;
+        optionsBuilder.DefaultTopic = defaultTopic;
+        optionsBuilder.DefaultSource = defaultSource;
 
-        services.AddOptions();
-        services.Configure<PubSubOptions>(opts =>
-        {
-            opts.DefaultPubSubName = _defaultPubSubName;
-            opts.DefaultTopic = _defaultTopic;
-            opts.DefaultSource = _defaultSource;
-        });
         services.AddHostedService<SubscribeHostedService>();
         services.AddSingleton<ICloudEventPubSub, CloudEventPubSub>();
         services.AddSingleton<ICloudEventHandlerFactory, CloudEventHandlerFactory>();
@@ -47,75 +42,53 @@ public class PubSubBuilder
     /// </summary>
     public IServiceCollection Services { get; }
 
-    internal Registry? Registry { get; set; }
-
-    /// <summary>
-    /// Load cloudevents metadata from specifed assemblies.
-    /// </summary>
-    /// <param name="assemblies">Assemblies to scan</param>
-    /// <returns>PubSub builder</returns>
-    /// <exception cref="ArgumentException">No assemblies found to scan</exception>
-    /// <exception cref="InvalidOperationException">CloudEvent handler registered with unknown CloudEvent</exception>
     public PubSubBuilder Load(params Assembly[] assemblies)
     {
-        if (assemblies.Length == 0)
+        foreach (var assembly in assemblies)
         {
-            throw new ArgumentException("No assemblies found to scan. Supply at least one assembly to scan for handlers.");
-        }
-
-        Registry = new Registry(_defaultPubSubName, _defaultTopic, _defaultSource);
-        foreach (var type in assemblies.SelectMany(a => a.DefinedTypes))
-        {
-            var typeInfo = type.GetTypeInfo();
-            if (typeInfo.IsAbstract || typeInfo.IsInterface || typeInfo.IsGenericTypeDefinition || typeInfo.ContainsGenericParameters)
+            if (!optionsBuilder.Assemblies.Any(a => a == assembly))
             {
-                continue;
-            }
-
-            if (type.GetCustomAttribute<CloudEventAttribute>() is CloudEventAttribute attribute)
-            {
-                Registry.RegisterMetadata(type, attribute);
-                continue;
-            }
-
-            var handlerInterfaces = type
-                .GetInterfaces()
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICloudEventHandler<>))
-                .ToArray();
-            if (handlerInterfaces.Length == 0)
-            {
-                continue;
-            }
-
-            foreach (var handlerInterface in handlerInterfaces)
-            {
-                var eventDataType = handlerInterface.GenericTypeArguments[0];
-                if (eventDataType.GetCustomAttribute<CloudEventAttribute>() is CloudEventAttribute attribute2)
-                {
-                    Registry.RegisterMetadata(eventDataType, attribute2);
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Handler {type.Name} implements {handlerInterface.Name} but does not have a {nameof(CloudEventAttribute)}.");
-                }
-                typeof(Registry)
-                    .GetMethod(nameof(Registry.RegisterHandler), BindingFlags.NonPublic | BindingFlags.Instance)!
-                    .MakeGenericMethod(eventDataType)!
-                    .Invoke(Registry, new[] { (object)Registry.GetMetadata(eventDataType) });
-                Services.AddScoped(handlerInterface, type);
+                optionsBuilder.Assemblies.Add(assembly);
             }
         }
-        Services.AddSingleton(Registry.Build);
         return this;
     }
 
-    public PubSubBuilder AddPubSubDeadLetterSender(
-        Action<PubSubDeadLetterSenderOptions> configure)
+    public void Build()
+    {
+        Services.AddSingleton(optionsBuilder.Build);
+
+        if (optionsBuilder.Assemblies is null)
+        {
+            throw new InvalidOperationException("No assemblies to register");
+        }
+        var register = new Registry(Services, new RegisterOptions(optionsBuilder.Assemblies.ToArray())
+        {
+            DefaultPubSubName = optionsBuilder.DefaultPubSubName,
+            DefaultTopic = optionsBuilder.DefaultTopic,
+            DefaultSource = optionsBuilder.DefaultSource,
+            EnableDeadLetter = optionsBuilder.EnableDeadLetter,
+            DefaultDeadLetterPubSubName = optionsBuilder.DefaultDeadLetterPubSubName,
+            DefaultDeadLetterSource = optionsBuilder.DefaultDeadLetterSource,
+            DefaultDeadLetterTopic = optionsBuilder.DefaultDeadLetterTopic
+        });
+        register.RegisterEventsAndHandlers();
+
+        Services.AddSingleton(register.Build);
+    }
+
+    public PubSubBuilder EnableDeadLetter(
+        string? defaultDeadLetterPubSubName = null,
+        string? defaultDeadLetterSource = null,
+        string? defaultDeadLetterTopic = null)
     {
         var services = Services;
-
         services.AddSingleton<IDeadLetterSender, PubSubDeadLetterSender>();
-        services.Configure(configure);
+
+        optionsBuilder.EnableDeadLetter = true;
+        optionsBuilder.DefaultDeadLetterPubSubName = defaultDeadLetterPubSubName;
+        optionsBuilder.DefaultDeadLetterSource = defaultDeadLetterSource;
+        optionsBuilder.DefaultDeadLetterTopic = defaultDeadLetterTopic;
 
         return this;
     }
@@ -123,6 +96,17 @@ public class PubSubBuilder
     public PubSubBuilder AddDefaultResiliencePipeline(Action<ResiliencePipelineBuilder> configure)
     {
         Services.AddResiliencePipeline(CloudEventHandlerFactory.ResiliencePolicyName, configure);
+        return this;
+    }
+
+    public PubSubBuilder AddPublisher(string name, Func<IServiceProvider, ICloudEventPublisher> factory)
+    {
+        optionsBuilder.PublisherFactories[name] = factory;
+        return this;
+    }
+    public PubSubBuilder AddSubscriber(string name, Func<IServiceProvider, ICloudEventSubscriber> factory)
+    {
+        optionsBuilder.SubscriberFactories[name] = factory;
         return this;
     }
 }

@@ -13,7 +13,7 @@ internal class RedisMessagePoller
     private readonly IDatabase _redis;
     private readonly ILogger<RedisMessagePoller> _logger;
     private readonly ILogger<RedisCloudEventMessage> _messageLogger;
-    private readonly Registry _registry;
+    private readonly Registry2 _registry;
     private readonly BackgroundTaskChannel _channel;
     private readonly RedisMessageChannelContext _channelContext;
     private readonly MetricsContext _metrics;
@@ -27,7 +27,7 @@ internal class RedisMessagePoller
         ILogger<RedisMessagePoller> logger,
         ILogger<BackgroundTaskChannel> channelLogger,
         ILogger<RedisCloudEventMessage> messageLogger,
-        Registry registry)
+        Registry2 registry)
     {
         _pubSubName = pubSubName;
         _topic = topic;
@@ -102,7 +102,7 @@ internal class RedisMessagePoller
                     _options.ConsumerGroup,
                     _options.ConsumerGroup,
                     StreamPosition.NewMessages,
-                    _options.PollBatchSize)
+                    _options.PollBatchSize, false, CommandFlags.None)
                     .ConfigureAwait(false);
 
                 if (messages.Length > 0)

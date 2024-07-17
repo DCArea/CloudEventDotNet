@@ -31,29 +31,30 @@ public abstract class Tester
 
     protected virtual PubSubBuilder ConfigureKafka()
     {
-        PubSubBuilder builder = Services.AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: KafkaEnv.topic)
-            .Load(typeof(Ping).Assembly);
-        return builder.AddKafkaPubSub("kafka", options =>
-        {
-            options.ProducerConfig = new ProducerConfig
+        return Services
+            .AddCloudEvents(defaultPubSubName: "kafka", defaultTopic: KafkaEnv.topic)
+            .Load(typeof(Ping).Assembly)
+            .AddKafkaPubSub("kafka", options =>
             {
-                BootstrapServers = KafkaEnv.broker,
-                Acks = Acks.Leader,
-                LingerMs = 10
-            };
-        }, options =>
-        {
-            options.ConsumerConfig = new ConsumerConfig
+                options.ProducerConfig = new ProducerConfig
+                {
+                    BootstrapServers = KafkaEnv.broker,
+                    Acks = Acks.Leader,
+                    LingerMs = 10
+                };
+            }, options =>
             {
-                BootstrapServers = KafkaEnv.broker,
-                GroupId = KafkaEnv.consumerGroup,
-                AutoOffsetReset = KafkaEnv.autoOffsetReset,
+                options.ConsumerConfig = new ConsumerConfig
+                {
+                    BootstrapServers = KafkaEnv.broker,
+                    GroupId = KafkaEnv.consumerGroup,
+                    AutoOffsetReset = KafkaEnv.autoOffsetReset,
 
-                QueuedMinMessages = 300_000,
-                FetchWaitMaxMs = 1_000
-            };
-            options.RunningWorkItemLimit = KafkaEnv.runningWorkItemLimit;
-        });
+                    QueuedMinMessages = 300_000,
+                    FetchWaitMaxMs = 1_000
+                };
+                options.RunningWorkItemLimit = KafkaEnv.runningWorkItemLimit;
+            });
     }
 
     protected virtual PubSubBuilder ConfigureRedis()

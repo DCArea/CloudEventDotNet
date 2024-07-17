@@ -29,8 +29,8 @@ public interface ICloudEventPubSub
     /// <returns></returns>
     public Task<CloudEvent<TData>> PublishAsync<TData>(
         CloudEvent<TData> cloudEvent,
-        string? pubsubName = null,
-        string? topic = null);
+        string pubsubName,
+        string topic);
 
     ///// <summary>
     ///// Publish a CloudEvent.

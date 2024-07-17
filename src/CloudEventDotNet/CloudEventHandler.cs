@@ -6,16 +6,16 @@ using Polly;
 
 namespace CloudEventDotNet;
 
-public enum ProcessingResult
+internal enum ProcessingResult
 {
     Success = 0,
     SentToDeadLetter = 1,
     Failed = 2
 }
 
-public interface ICloudEventHandler
+internal interface ICloudEventHandler
 {
-    Task<ProcessingResult> ProcessAsync(CloudEvent @event, CancellationToken token);
+    Task<ProcessingResult> ProcessAsync(CloudEvent @event, SubscriptionOptions options, CancellationToken token);
 }
 
 internal sealed class CloudEventHandler(
@@ -41,7 +41,7 @@ internal sealed class CloudEventHandler(
         _resiliencePipeline = resiliencePipeline;
     }
 
-    public async Task<ProcessingResult> ProcessAsync(CloudEvent @event, CancellationToken token)
+    public async Task<ProcessingResult> ProcessAsync(CloudEvent @event, SubscriptionOptions options, CancellationToken token)
     {
         var ac = Activity.Current;
         try
@@ -73,10 +73,10 @@ internal sealed class CloudEventHandler(
             _logger.CloudEventProcessFailed(ex, @event.Id);
             Activity.Current?.SetStatus(ActivityStatusCode.Error, $"Exception: {ex.GetType().Name}");
 
-            var _deadLetterSender = serviceProvider.GetService<IDeadLetterSender>();
-            if (_deadLetterSender != null)
+            if (options.DeadLetter is not null)
             {
-                await _deadLetterSender.SendAsync(metadata, @event, ex.ToString());
+                var _deadLetterSender = serviceProvider.GetRequiredService<IDeadLetterSender>();
+                await _deadLetterSender.SendAsync(metadata, @event, ex.ToString(), options.DeadLetter);
                 return ProcessingResult.SentToDeadLetter;
             }
             return ProcessingResult.Failed;

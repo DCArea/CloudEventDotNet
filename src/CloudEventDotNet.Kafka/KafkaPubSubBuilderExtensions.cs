@@ -25,33 +25,27 @@ public static class KafkaPubSubBuilderExtensions
         {
             services.AddSingleton<IKafkaProducerFactory, KafkaProducerFactory>();
             services.Configure<KafkaPublishOptions>(name, configurePublish);
-            services.Configure<PubSubOptions>(options =>
+            builder.AddPublisher(name, factory);
+            ICloudEventPublisher factory(IServiceProvider sp)
             {
-                ICloudEventPublisher factory(IServiceProvider sp)
-                {
-                    var optionsFactory = sp.GetRequiredService<IOptionsFactory<KafkaPublishOptions>>();
-                    var options = optionsFactory.Create(name);
-                    return ActivatorUtilities.CreateInstance<KafkaCloudEventPublisher>(sp, name, options);
-                }
-                options.PublisherFactoris[name] = factory;
-            });
+                var optionsFactory = sp.GetRequiredService<IOptionsFactory<KafkaPublishOptions>>();
+                var options = optionsFactory.Create(name);
+                return ActivatorUtilities.CreateInstance<KafkaCloudEventPublisher>(sp, name, options);
+            }
         }
 
         if (configureSubscribe is not null)
         {
             services.AddSingleton<IKafkaConsumerFactory, KafkaConsumerFactory>();
             services.Configure<KafkaSubscribeOptions>(name, configureSubscribe);
-            services.Configure<PubSubOptions>(options =>
+            builder.AddSubscriber(name, factory);
+            ICloudEventSubscriber factory(IServiceProvider sp)
             {
-                ICloudEventSubscriber factory(IServiceProvider sp)
-                {
-                    var optionsFactory = sp.GetRequiredService<IOptionsFactory<KafkaSubscribeOptions>>();
-                    var options = optionsFactory.Create(name);
+                var optionsFactory = sp.GetRequiredService<IOptionsFactory<KafkaSubscribeOptions>>();
+                var options = optionsFactory.Create(name);
 
-                    return ActivatorUtilities.CreateInstance<KafkaCloudEventSubscriber>(sp, name, options);
-                }
-                options.SubscriberFactoris[name] = factory;
-            });
+                return ActivatorUtilities.CreateInstance<KafkaCloudEventSubscriber>(sp, name, options);
+            }
         }
 
         return builder;

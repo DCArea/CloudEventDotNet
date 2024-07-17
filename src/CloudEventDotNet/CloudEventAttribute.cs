@@ -1,4 +1,4 @@
-namespace CloudEventDotNet;
+﻿namespace CloudEventDotNet;
 
 /// <summary>
 /// CloudEvent atribute
@@ -38,4 +38,36 @@ public class CloudEventAttribute : Attribute
     /// Default to use the defaultTopic configured on <see cref="PubSubBuilder"/>.
     /// </remarks>
     public string? Topic { get; init; }
+
+    /// <summary>
+    /// Whether to enable deadletter, if enabled, a deadletter will be sent when this CloudEvent fails to be handled.
+    /// </summary>
+    /// <remarks>
+    /// Default to configuration on <see cref="PubSubBuilder"/>.
+    /// </remarks>
+    public bool? EnableDeadLetter { get; init; }
+
+    /// <summary>
+    /// The name of the PubSub to which the DeadLetter will be sent.
+    /// </summary>
+    /// <remarks>
+    /// Default to configuration on <see cref="PubSubBuilder"/>.
+    /// </remarks>
+    public string? DeadLetterPubSubName { get; init; }
+
+    /// <summary>
+    /// The source to which the DeadLetter will be sent.
+    /// </summary>
+    /// <remarks>
+    /// Default to configuration on <see cref="PubSubBuilder"/>.
+    /// </remarks>
+    public string? DeadLetterSource { get; init; }
+
+    /// <summary>
+    /// The topic to which the DeadLetter will be sent.
+    /// </summary>
+    /// <remarks>
+    /// Default to configuration on <see cref="PubSubBuilder"/>.
+    /// </remarks>
+    public string? DeadLetterTopic { get; init; }
 }

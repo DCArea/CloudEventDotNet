@@ -14,10 +14,8 @@ public class DeadLetterTester : Tester
     protected override PubSubBuilder ConfigureKafka()
     {
         var builder = base.ConfigureKafka();
-        return builder.AddPubSubDeadLetterSender(opts =>
-        {
-            opts.Topic = "DL";
-        }).AddDefaultResiliencePipeline(b =>
+        return builder.EnableDeadLetter(defaultDeadLetterTopic: "DL")
+            .AddDefaultResiliencePipeline(b =>
         {
             b.AddRetry(new());
         });
@@ -26,10 +24,7 @@ public class DeadLetterTester : Tester
     protected override PubSubBuilder ConfigureRedis()
     {
         var builder = base.ConfigureRedis();
-        return builder.AddPubSubDeadLetterSender(opts =>
-        {
-            opts.Topic = "DL";
-        }).AddDefaultResiliencePipeline(b =>
+        return builder.EnableDeadLetter(defaultDeadLetterTopic: "DL").AddDefaultResiliencePipeline(b =>
         {
             b.AddRetry(new());
         });
