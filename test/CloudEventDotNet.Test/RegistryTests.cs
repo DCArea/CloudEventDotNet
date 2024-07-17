@@ -1,22 +1,22 @@
-using CloudEventDotNet.TestEvents;
+﻿using CloudEventDotNet.TestEvents;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CloudEventDotNet.Test;
 
 public class RegistryTests
 {
-    private readonly Registry2 _registry;
+    private readonly Registry _registry;
 
     public RegistryTests()
     {
         var services = new ServiceCollection()
             .AddLogging();
-        services.AddCloudEvents()
+        services.AddCloudEvents("testpubsub", "testtopic", "testsource")
             .Load(typeof(SimpleEvent).Assembly)
             .Build();
         var sp = services.BuildServiceProvider();
 
-        _registry = sp.GetRequiredService<Registry2>();
+        _registry = sp.GetRequiredService<Registry>();
     }
 
     [Fact]

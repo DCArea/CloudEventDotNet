@@ -9,7 +9,7 @@ internal class RedisCloudEventSubscriber : ICloudEventSubscriber
     private readonly string _pubSubName;
     private readonly RedisSubscribeOptions _options;
     private readonly ILogger _logger;
-    private readonly Registry2 _registry;
+    private readonly Registry _registry;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IDatabase _database;
     private readonly RedisMessagePoller[] _pollers;
@@ -18,7 +18,7 @@ internal class RedisCloudEventSubscriber : ICloudEventSubscriber
         string pubSubName,
         RedisSubscribeOptions options,
         ILogger<RedisCloudEventSubscriber> logger,
-        Registry2 registry,
+        Registry registry,
         ILoggerFactory loggerFactory)
     {
         _pubSubName = pubSubName;

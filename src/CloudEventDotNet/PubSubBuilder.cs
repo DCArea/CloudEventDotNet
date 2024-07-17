@@ -62,7 +62,7 @@ public class PubSubBuilder
         {
             throw new InvalidOperationException("No assemblies to register");
         }
-        var register = new Registry(Services, new RegisterOptions(optionsBuilder.Assemblies.ToArray())
+        var register = new Register(Services, new RegisterOptions(optionsBuilder.Assemblies.ToArray())
         {
             DefaultPubSubName = optionsBuilder.DefaultPubSubName,
             DefaultTopic = optionsBuilder.DefaultTopic,

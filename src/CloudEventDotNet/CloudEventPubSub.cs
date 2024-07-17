@@ -9,12 +9,12 @@ internal sealed class CloudEventPubSub : ICloudEventPubSub
     private readonly PubSubOptions _options;
     private readonly FrozenDictionary<string, ICloudEventPublisher> _publishers;
     private readonly ILogger<CloudEventPubSub> _logger;
-    private readonly Registry2 _registry;
+    private readonly Registry _registry;
 
     public CloudEventPubSub(
         ILogger<CloudEventPubSub> logger,
         IServiceProvider services,
-        Registry2 registry,
+        Registry registry,
         PubSubOptions options)
     {
         _options = options;

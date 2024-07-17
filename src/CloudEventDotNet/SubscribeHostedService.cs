@@ -1,39 +1,28 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace CloudEventDotNet;
 
 /// <summary>
 /// A hosted service to pull CloudEvents from subscribed topics
 /// </summary>
-public class SubscribeHostedService : IHostedService
+public class SubscribeHostedService(
+    ILogger<SubscribeHostedService> logger,
+    PubSubOptions options) : IHostedService
 {
-    private readonly List<ICloudEventSubscriber> _subscribers;
-    private readonly ILogger<SubscribeHostedService> _logger;
-
-    public SubscribeHostedService(
-        ILogger<SubscribeHostedService> logger,
-        IServiceProvider serviceProvider,
-        PubSubOptions options)
-    {
-        _subscribers = options
-            .Subscribers.Values
-            .ToList();
-        _logger = logger;
-    }
+    private readonly List<ICloudEventSubscriber> _subscribers = [.. options.Subscribers.Values];
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting subscribers");
+        logger.LogInformation("Starting subscribers");
         await Task.WhenAll(_subscribers.Select(s => s.StartAsync()));
-        _logger.LogInformation("Started subscribers");
+        logger.LogInformation("Started subscribers");
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Stoping subscribers");
+        logger.LogInformation("Stoping subscribers");
         await Task.WhenAll(_subscribers.Select(s => s.StopAsync()));
-        _logger.LogInformation("Stopped subscribers");
+        logger.LogInformation("Stopped subscribers");
     }
 }

@@ -11,7 +11,7 @@ internal sealed class KafkaCloudEventMessage(
     ILogger<KafkaCloudEventMessage> logger,
     KafkaMessageChannelContext channelContext,
     string channelKey,
-    Registry2 registry,
+    Registry registry,
     KafkaRedeliverProducer producer
     ) : IBackgroundTask
 {

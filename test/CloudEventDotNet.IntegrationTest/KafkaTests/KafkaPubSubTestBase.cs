@@ -48,7 +48,7 @@ public class KafkaPubSubTestBase : PubSubTestBase
 
     protected override async Task StartAsync()
     {
-        //var registry = ServiceProvider.GetRequiredService<Registry2>();
+        //var registry = ServiceProvider.GetRequiredService<Registry>();
         //foreach (var topic in registry.GetSubscribedTopics(PubsubName))
         //{
         //    var tp = new TopicPartition(topic, new Partition(0));

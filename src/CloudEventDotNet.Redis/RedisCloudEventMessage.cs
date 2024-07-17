@@ -11,7 +11,7 @@ internal sealed class RedisCloudEventMessage(
     ILogger<RedisCloudEventMessage> logger,
     RedisMessageChannelContext channelContext,
     MetricsContext metrics,
-    Registry2 registry,
+    Registry registry,
     IDatabase redis
     ) : IBackgroundTask
 {

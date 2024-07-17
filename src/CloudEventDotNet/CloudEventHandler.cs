@@ -6,6 +6,8 @@ using Polly;
 
 namespace CloudEventDotNet;
 
+internal delegate Task HandleCloudEventDelegate(IServiceProvider serviceProvider, CloudEvent @event, CancellationToken token);
+
 internal enum ProcessingResult
 {
     Success = 0,

@@ -51,7 +51,7 @@ public class RedisPubSubTestBase : PubSubTestBase
             .Load(GetType().Assembly)
             .Build();
 
-        //var registry = ServiceProvider.GetRequiredService<Registry2>();
+        //var registry = ServiceProvider.GetRequiredService<Registry>();
         //Streams = registry.GetSubscribedTopics(PubsubName).ToDictionary(t => t, t => Channel.CreateUnbounded<StreamEntry>(new UnboundedChannelOptions { AllowSynchronousContinuations = false }));
 
     }

@@ -5,7 +5,7 @@ namespace CloudEventDotNet.IntegrationTest;
 
 public class SubscriptionMonitor<T>
 {
-    public ConcurrentBag<CloudEvent<T>> DeliveredEvents = new();
+    public ConcurrentBag<CloudEvent<T>> DeliveredEvents = [];
 
     [StackTraceHidden]
     [DebuggerHidden]

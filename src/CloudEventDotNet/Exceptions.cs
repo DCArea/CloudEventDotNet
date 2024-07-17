@@ -1,10 +1,12 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CloudEventDotNet;
 
 internal class CloudEventDotNetException(string message) : Exception(message)
 { }
 
+[StackTraceHidden]
 internal static class ThrowHelper
 {
     [DoesNotReturn]

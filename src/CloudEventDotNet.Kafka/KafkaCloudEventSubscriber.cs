@@ -9,7 +9,7 @@ namespace CloudEventDotNet.Kafka;
 internal sealed class KafkaCloudEventSubscriber : ICloudEventSubscriber
 {
     private readonly IConsumer<byte[], byte[]> _consumer;
-    private readonly Registry2 _registry;
+    private readonly Registry _registry;
     private readonly KafkaRedeliverProducer _redeliverProducer;
     private readonly string[] _topics;
     private readonly string _pubSubName;
@@ -22,7 +22,7 @@ internal sealed class KafkaCloudEventSubscriber : ICloudEventSubscriber
     public KafkaCloudEventSubscriber(
         string pubSubName,
         KafkaSubscribeOptions options,
-        Registry2 registry,
+        Registry registry,
         IKafkaConsumerFactory consumerFactory,
         ILoggerFactory loggerFactory,
         IServiceProvider serviceProvider)
